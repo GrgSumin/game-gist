@@ -1,0 +1,35 @@
+.nav{
+    position: fixed;
+    top: 0;
+    left: 0; 
+    margin-left: 60px;
+    background-color: aliceblue;
+    border-radius: 5px;
+    min-width: 90vw;
+    display: flex;
+    justify-content: center;
+    transform: skew(20deg);
+    
+    
+}
+
+.nav ul{
+    display: flex;
+    list-style-type: none;
+    gap: 25px;
+    transform: skew(-20deg)
+   
+}
+.nav .nav-Link{
+    text-decoration: none;
+    color: black;
+}
+.nav .nav-Link:hover{
+    background-color: black;
+    color: white;
+    padding: 5px;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+
