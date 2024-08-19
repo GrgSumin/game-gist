@@ -14,8 +14,11 @@
     "@emotion/styled": "^11.11.5",
     "@mui/icons-material": "^5.15.15",
     "@mui/material": "^5.15.15",
+    "@mui/x-charts": "^7.3.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-hook-form": "^7.51.4",
+    "react-hot-toast": "^2.4.1",
     "zod": "^3.23.4"
   },
   "devDependencies": {

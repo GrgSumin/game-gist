@@ -14,6 +14,7 @@ const accRoutes = require("./routes/Users");
 const newsRoutes = require("./routes/News");
 app.use("/api/users", accRoutes);
 app.use("/api/news", newsRoutes);
+app.use("/uploads", express.static("uploads"));
 
 mongoose
   .connect("mongodb://localhost:27017/game-gist", {
