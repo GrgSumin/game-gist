@@ -1,9 +1,13 @@
 import { atom, selector } from "recoil";
-import { footballplayers, Player } from "../fantasy/FootballPlayer";
+import { footballplayers, FootballPlayer } from "../fantasy/FootballPlayer";
 
 export const allPlayersState = atom({
   key: "allPlayersState",
   default: footballplayers,
+});
+export const selectedPlayersState = atom<FootballPlayer[]>({
+  key: "selectedPlayersState",
+  default: [],
 });
 
 export const positionState = atom<string[]>({
@@ -11,7 +15,7 @@ export const positionState = atom<string[]>({
   default: ["All"],
 });
 
-export const filterPlayers = selector<Player[]>({
+export const filterPlayers = selector<FootballPlayer[]>({
   key: "filterPlayers",
   get: ({ get }) => {
     const players = get(allPlayersState);

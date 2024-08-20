@@ -1,7 +1,20 @@
-import { Link } from "react-router-dom";
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
 import "./home.css";
+import useAuth from "../hooks/useAuth";
 
-function Home() {
+const Home: React.FC = () => {
+  const navigate = useNavigate();
+  const { authenticated } = useAuth();
+
+  const handlePlayClick = () => {
+    if (authenticated) {
+      navigate("/fantasy");
+    } else {
+      navigate("/login");
+    }
+  };
+
   return (
     <div className="Welcome">
       <div className="left-container">
@@ -22,15 +35,15 @@ function Home() {
           <Link to="/news">
             <button className="news1">News</button>
           </Link>
-          <Link to="/fantasy">
-            <button className="play">Play</button>
-          </Link>
+          <button className="play" onClick={handlePlayClick}>
+            Play
+          </button>
         </div>
       </div>
 
       <div className="Image"></div>
     </div>
   );
-}
+};
 
 export default Home;

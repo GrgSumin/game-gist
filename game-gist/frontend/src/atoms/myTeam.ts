@@ -1,6 +1,5 @@
 import { atom, selector } from "recoil";
-import { Player, Positions } from "../fantasy/FootballPlayer";
-import { allPlayersState } from "./Player";
+import { FootballPlayer, Positions } from "../fantasy/FootballPlayer";
 
 export const myFormationState = atom<{ [key in Positions]: number }>({
   key: "myFormation",
@@ -12,7 +11,7 @@ export const myFormationState = atom<{ [key in Positions]: number }>({
   },
 });
 
-export const myTeamState = atom<Player[]>({
+export const myTeamState = atom<FootballPlayer[]>({
   key: "MyTeamState",
   default: [],
 });
@@ -25,7 +24,7 @@ export const myPlayersByPosition = selector({
     const players = get(myTeamState);
     const myFormation = get(myFormationState);
 
-    const groupPlayers: { [key in Positions]?: (Player | null)[] } = {};
+    const groupPlayers: { [key in Positions]?: (FootballPlayer | null)[] } = {};
 
     positionList.forEach((position) => {
       groupPlayers[position] = players.filter((p) => p.position === position);

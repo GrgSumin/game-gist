@@ -32,4 +32,32 @@ const registers = async (req, res) => {
   }
 };
 
-module.exports = { registers };
+const login = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (user && user.password === md5(password)) {
+      // Extract the _id from the user document and include it in the response
+      res.json({
+        loginStatus: true,
+        message: "Login Successful",
+        user: {
+          id: user._id, // Explicitly add the _id field as id
+          email: user.email,
+          username: user.username,
+          // add any other fields you want to return
+        },
+      });
+    } else {
+      res.status(200).json({
+        loginStatus: false,
+        message: "Invalid Credentials",
+      });
+    }
+  } catch (error) {
+    console.log("Error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+module.exports = { registers, login };

@@ -1,10 +1,10 @@
 import { useRecoilState, useRecoilValue } from "recoil";
 import "./fantasy.css";
 import { myFormationState, myTeamState } from "../atoms/myTeam";
-import { Player } from "./FootballPlayer";
+import { FootballPlayer } from "./FootballPlayer";
 
 interface PlayerProps {
-  player: Player;
+  player: FootballPlayer;
 }
 
 function Players({ player }: PlayerProps) {
@@ -15,12 +15,12 @@ function Players({ player }: PlayerProps) {
     (p) => p.position === player.position
   ).length;
 
-  const isSelected = myTeam.some((p: Player) => p.id === player.id);
+  const isSelected = myTeam.some((p: FootballPlayer) => p.id === player.id);
 
   const onClick = () => {
     if (isSelected) {
       setMyTeam((currentPlayers) =>
-        currentPlayers.filter((p: Player) => p.id !== player.id)
+        currentPlayers.filter((p: FootballPlayer) => p.id !== player.id)
       );
     } else {
       if (numberofPlayers < myFormation[player.position]) {

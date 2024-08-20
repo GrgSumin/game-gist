@@ -4,7 +4,7 @@ export enum Positions {
   MID = "MID",
   FWD = "FWD",
 }
-export type Player = {
+export type FootballPlayer = {
   id: number;
   name: string;
   club: string;
@@ -13,7 +13,7 @@ export type Player = {
   position: Positions;
 };
 
-export const footballplayers: Player[] = [
+export const footballplayers: FootballPlayer[] = [
   {
     id: 1,
     name: "Brice Samba",
