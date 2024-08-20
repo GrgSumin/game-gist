@@ -12,9 +12,11 @@ app.use(express.json());
 
 const accRoutes = require("./routes/Users");
 const newsRoutes = require("./routes/News");
+const groupRoutes = require("./routes/Group");
 app.use("/api/users", accRoutes);
 app.use("/api/news", newsRoutes);
 app.use("/uploads", express.static("uploads"));
+app.use("/api/groups", groupRoutes);
 
 mongoose
   .connect("mongodb://localhost:27017/game-gist", {

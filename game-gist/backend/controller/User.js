@@ -1,5 +1,5 @@
-const User = require("../model/User");
 const md5 = require("md5");
+const User = require("../model/User");
 
 const registers = async (req, res) => {
   const { username, email, password, phonenumber } = req.body;
