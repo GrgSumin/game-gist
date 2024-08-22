@@ -1,10 +1,19 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 
+// Define the type for a news item
+interface NewsItem {
+  title: string;
+  description: string;
+  image: string;
+  url: string;
+}
+
 function Single() {
   const location = useLocation();
-  const { id } = location.state;
-  const [data, setData] = useState([]);
+  const { id } = location.state as { id: string }; // Type assertion
+  const [data, setData] = useState<NewsItem | null>(null); // Updated state type
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -14,32 +23,50 @@ function Single() {
             method: "GET",
           }
         );
-        if (response.ok) {
-          console.log("there is an error");
+
+        if (!response.ok) {
+          console.error("Error fetching news");
+          return;
         }
-        const jsonData = await response.json();
+
+        const jsonData: NewsItem = await response.json();
         setData(jsonData);
       } catch (error) {
-        console.log(error);
+        console.error("Fetch error:", error);
       }
     };
+
     fetchUser();
-  }, []);
+  }, [id]);
+
+  // Conditional rendering in case data is not yet loaded
+  if (!data) {
+    return <p>Loading...</p>;
+  }
 
   return (
-    <>
-      <div className="">
-        <img
-          src={`http://localhost:4001/uploads/${data.image}`}
-          alt=""
-          height="100px"
-          width="100px"
-        />
-        <h1>{data.title}</h1>
-        <h2>{data.description}</h2>
-        <a href={data.url}>{data.url}</a>
-      </div>
-    </>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        color: "white",
+      }}
+    >
+      <h1 style={{ color: "#84CFDE" }}>{data.title}</h1>
+      <img
+        src={`http://localhost:4001/uploads/${data.image}`}
+        alt={data.title}
+        height="400px"
+        width="400px"
+      />
+      <h2 style={{ display: "flex", justifyContent: "center", width: "500px" }}>
+        {data.description}
+      </h2>
+      <a href={data.url} target="_blank" rel="noopener noreferrer">
+        {data.url}
+      </a>
+    </div>
   );
 }
 

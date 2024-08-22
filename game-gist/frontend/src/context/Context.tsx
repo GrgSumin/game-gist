@@ -20,8 +20,10 @@ const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
-    setAuthenticated(!!storedUserId);
-    setUserId(storedUserId || null);
+    if (storedUserId) {
+      setAuthenticated(true);
+      setUserId(storedUserId);
+    }
   }, []);
 
   const login = (userId: string) => {

@@ -11,6 +11,10 @@ import News from "./news-app/News";
 import Footer from "./footer/Footer";
 import Home from "./Home/home";
 import Filter from "./fantasy/filter";
+import Group from "./fantasy/Group";
+import MyTeam from "./fantasy/myteam";
+import Field from "./fantasy/Field";
+import FantasyNews from "./fantasy/fantasy-news";
 
 function App() {
   return (
@@ -29,6 +33,11 @@ function App() {
         <Route path="/fantasy" element={<Fantasy />} />
         <Route path="/home" element={<Home />} />\
         <Route path="/filter" element={<Filter />} />
+        <Route path="/myteam" element={<MyTeam />} />
+        <Route path="/field" element={<Field />} />
+        <Route path="/fantasynews" element={<FantasyNews />} />
+        <Route path="*" element={<Navigate to="/field" />} />
+        {/* <Route path="/group" element={<Group />} /> */}
         {/* <Route path="/livescore" element={<LiveScoresCard />} /> */}
         {/* <Route path="/match" element={<ImportantMatches />} /> */}
       </Routes>

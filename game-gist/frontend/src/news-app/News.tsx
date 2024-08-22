@@ -82,12 +82,12 @@ function News() {
   return (
     <div style={{ width: "100vw" }}>
       <div className="main-container">
-        <div className="teams">
+        {/* <div className="teams">
           <h2 style={{ borderBottom: "2px solid gray" }}>Leagues</h2>
           {leagues.map((league) => (
             <h2>{league}</h2>
           ))}
-        </div>
+        </div> */}
         <div className="headline">
           {headline.map((headline: any, index) => (
             <Link to="/single" state={{ id: headline._id }}>
@@ -108,7 +108,7 @@ function News() {
             </Link>
           ))}
         </div>
-        <div className="matches">
+        {/* <div className="matches">
           <h2 style={{ borderBottom: "2px solid gray" }}>Today</h2>
           {matches.map((match) => (
             <>
@@ -117,7 +117,7 @@ function News() {
               </h2>
             </>
           ))}
-        </div>
+        </div> */}
       </div>
       <Marquee>
         <div style={{ display: "flex" }}>

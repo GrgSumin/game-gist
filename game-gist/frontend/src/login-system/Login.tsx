@@ -4,11 +4,11 @@ import TextField from "@mui/material/TextField";
 import { Button } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { Schema } from "../types/zod";
 import toast from "react-hot-toast";
 import useAuth from "../hooks/useAuth";
+import { Schema } from "../types/zod"; // Ensure Schema is correctly defined
 
-const Login = () => {
+const Login: React.FC = () => {
   const navigate = useNavigate();
   const { register, formState, handleSubmit } = useForm<Schema>({
     defaultValues: {
@@ -30,7 +30,10 @@ const Login = () => {
       });
 
       if (!response.ok) {
-        toast.error("Login failed");
+        const errorResponse = await response.json();
+        toast.error(
+          "Login failed: " + (errorResponse.message || "Unknown error")
+        );
         return;
       }
 
@@ -40,21 +43,19 @@ const Login = () => {
       if (result.loginStatus) {
         toast.success("Login successful");
 
-        // Store userId in localStorage
-        if (result.user && result.user._id) {
-          localStorage.setItem("userId", result.user._id); // Store _id as userId
-          login(result.user._id); // Call the login function to update the state
+        if (result.user && result.user.userId) {
+          localStorage.setItem("userId", result.user.userId);
+          login(result.user.userId);
+          navigate("/");
         } else {
-          console.error("User ID (_id) is undefined in the login response");
+          console.error("User ID (userId) is undefined in the login response");
         }
-
-        // Navigate to the home page or another secure page
-        navigate("/");
       } else {
         toast.error(result.message || "Login failed");
       }
-    } catch (error: any) {
-      toast.error("Login failed", error.message);
+    } catch (error) {
+      toast.error("Login failed");
+      console.error("Login error:", error);
     }
   };
 

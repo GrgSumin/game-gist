@@ -4,10 +4,10 @@ import Carousel from "react-material-ui-carousel";
 import { Link, useNavigate } from "react-router-dom";
 
 function Headline() {
-  const [news, setNews] = useState([]);
-  const [headline, setHeadline] = useState([]);
-
+  const [news, setNews] = useState<any[]>([]);
+  const [headline, setHeadline] = useState<any[]>([]);
   const navigate = useNavigate();
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -17,77 +17,93 @@ function Headline() {
             "Content-Type": "application/json",
           },
         });
+
         if (!response.ok) {
           const errorData = await response.json();
-          console.log(errorData);
+          console.error("Error fetching news:", errorData);
+          // Optionally set some error state here
           return;
         }
 
         const data = await response.json();
-
-        setHeadline(data.headlines);
-        setNews(data.getallNews);
+        setHeadline(data.headlines || []); // Ensure default to empty array
+        setNews(data.getallNews || []); // Ensure default to empty array
       } catch (error) {
-        console.log("error");
-        console.log("error", error);
+        console.error("Fetch error:", error);
+        // Optionally set some error state here
       }
     };
 
     fetchData();
-    console.log(news);
   }, []);
+
   return (
     <div>
       <h1 style={{ color: "aliceblue", textAlign: "center" }}>News</h1>
 
       <Carousel animation="slide">
-        {headline.map((headline: any, index) => (
-          <Link to="/single" state={{ id: headline._id }}>
-            <div key={index} className="headline">
-              <div className="img">
-                <img
-                  src={`http://localhost:4001/uploads/${headline.image}`}
-                  alt="football"
-                  height="400px"
-                  width="300px"
-                />
+        {headline.length > 0 ? (
+          headline.map((item: any, index: number) => (
+            <Link key={index} to="/single" state={{ id: item._id }}>
+              <div className="headline">
+                <div className="img">
+                  <img
+                    src={`http://localhost:4001/uploads/${item.image}`}
+                    alt={item.title}
+                    height="400px"
+                    width="300px"
+                    loading="lazy" // Add lazy loading
+                  />
+                </div>
+                <div className="topics">
+                  <h1>{item.title}</h1>
+                  <h2>{item.short_desc}</h2>
+                  <a href={item.url} target="_blank" rel="noopener noreferrer">
+                    {item.url}
+                  </a>
+                </div>
               </div>
-              <div className="topics">
-                <h1>{headline.title}</h1>
-                <h2>{headline.short_desc}</h2>
-                <a href={headline.url}>{headline.url}</a>
-              </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          ))
+        ) : (
+          <p>No headlines available</p>
+        )}
       </Carousel>
+
       <div className="primary">
-        {news.map((headline: any) => (
-          <Link to="/single" state={{ id: headline._id }}>
-            <div
-              className="news"
-              onClick={() =>
-                navigate(`./single/${headline._id}`, {
-                  state: { id: headline._id },
-                })
-              }
-            >
-              <div className="img">
-                <img
-                  src={`http://localhost:4001/uploads/${headline.image}`}
-                  alt="football"
-                  height="300px"
-                  width="200px"
-                />
+        {news.length > 0 ? (
+          news.map((item: any) => (
+            <Link key={item._id} to="/single" state={{ id: item._id }}>
+              <div
+                className="news"
+                onClick={() =>
+                  navigate(`/single/${item._id}`, {
+                    state: { id: item._id },
+                  })
+                }
+              >
+                <div className="img">
+                  <img
+                    src={`http://localhost:4001/uploads/${item.image}`}
+                    alt={item.title}
+                    height="300px"
+                    width="200px"
+                    loading="lazy" // Add lazy loading
+                  />
+                </div>
+                <div className="topics">
+                  <h1>{item.title}</h1>
+                  <h2>{item.short_desc}</h2>
+                  <a href={item.url} target="_blank" rel="noopener noreferrer">
+                    {item.url}
+                  </a>
+                </div>
               </div>
-              <div className="topics">
-                <h1>{headline.title}</h1>
-                <h2>{headline.short_desc}</h2>
-                <a href={headline.url}>{headline.url}</a>
-              </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          ))
+        ) : (
+          <p>No news available</p>
+        )}
       </div>
     </div>
   );

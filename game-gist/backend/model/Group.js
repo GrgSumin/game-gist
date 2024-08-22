@@ -5,7 +5,7 @@ const GroupSchema = new mongoose.Schema({
   creatorId: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
-    ref: "registers", // Ensure this matches the collection name in User model
+    ref: "User",
   },
   groupCode: {
     type: String,
@@ -16,7 +16,7 @@ const GroupSchema = new mongoose.Schema({
       userId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
-        ref: "registers", // Ensure this matches the collection name in User model
+        ref: "User",
       },
       username: String,
       teamName: String,

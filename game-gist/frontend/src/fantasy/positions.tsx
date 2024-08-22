@@ -18,7 +18,20 @@ function Player({ position, player, onSelect }: PlayerProps) {
         justifyContent: "center",
       }}
     >
-      <PiTShirtFill size={40} color={player ? "yellow" : "gray"} />
+      {player ? (
+        <img
+          src={`${
+            window.location.origin
+          }/team/${player.club.toLowerCase()}.png`}
+          alt={player.name}
+          style={{
+            height: 40,
+            width: 40,
+          }}
+        />
+      ) : (
+        <PiTShirtFill size={40} color="gray" />
+      )}
       <p
         style={{
           color: "black",

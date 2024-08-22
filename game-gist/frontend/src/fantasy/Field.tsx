@@ -1,12 +1,12 @@
 import React, { useEffect } from "react";
-import "./fantasy.css";
-import Player from "./positions";
-import Filter from "./filter";
-import PlayerList from "./playerLists";
 import { useRecoilValue, useRecoilState } from "recoil";
 import { myPlayersByPosition, myTeamState } from "../atoms/myTeam";
+import Player from "./positions";
 import { FootballPlayer } from "./FootballPlayer";
+import Filter from "./filter";
+import PlayerList from "./playerLists";
 import useAuth from "../hooks/useAuth";
+import { FantasyNavbar } from "./fantasy";
 
 type Players = {
   FWD: (string | null)[];
@@ -58,47 +58,47 @@ function Field() {
   };
 
   return (
-    <div style={{ color: "white" }}>
-      <div className="field">
-        <div className="player">
-          {Object.keys(players).map((position, index) => (
-            <div
-              key={position}
-              className={`position-${index}`}
-              style={{
-                position: "absolute",
-                top: `${16 + index * 20}%`,
-                color: "black",
-                fontWeight: "bold",
-                width: "500px",
-                display: "flex",
-                justifyContent: "center",
-              }}
-            >
+    <div>
+      <FantasyNavbar />
+      <div
+        style={{
+          color: "white",
+          display: "flex",
+          justifyContent: "center",
+          marginTop: "150px",
+          alignItems: "center",
+          padding: "30px",
+          gap: "30px",
+        }}
+      >
+        <div className="field">
+          <div className="player">
+            {Object.keys(players).map((position, index) => (
               <div
-                style={{
-                  display: "flex",
-                  width: "400px",
-                  justifyContent: "space-around",
-                }}
+                key={position}
+                className={`position-container position-${index}`}
               >
-                {players[position as keyof Players]?.map((player, index) => (
-                  <Player
-                    key={index}
-                    position={position}
-                    player={player}
-                    onSelect={() => handlePlayerSelect(player)}
-                  />
-                ))}
+                <div className="position-inner">
+                  {players[position as keyof Players]?.map((player, index) => (
+                    <Player
+                      key={index}
+                      position={position}
+                      player={player}
+                      onSelect={() =>
+                        handlePlayerSelect(player as FootballPlayer)
+                      }
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <div className="details">
+            <Filter />
+            <PlayerList />
+          </div>
+          <button onClick={handleConfirm}>Confirm Selection</button>
         </div>
-        <div className="details">
-          <Filter />
-          <PlayerList />
-        </div>
-        <button onClick={handleConfirm}>Confirm Selection</button>
       </div>
     </div>
   );

@@ -25,16 +25,13 @@ const Register = () => {
         return;
       }
 
-      const response = await fetch(
-        "http://localhost:4001/api/users/registers",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        }
-      );
+      const response = await fetch("http://localhost:4001/api/users/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
 
       if (!response.ok) {
         toast.error("Registeration failed");

@@ -3,12 +3,20 @@ const User = require("../model/User");
 
 const registers = async (req, res) => {
   const { username, email, password, phonenumber } = req.body;
+
+  if (!username || !email || !password || !phonenumber) {
+    return res
+      .status(400)
+      .json({ registerStatus: false, message: "All fields are required" });
+  }
+
   try {
     let user = await User.findOne({
       $or: [{ email }, { username }],
     });
+
     if (user) {
-      res.status(200).json({
+      return res.status(200).json({
         registerStatus: false,
         message: "Email or Username already exists",
       });
@@ -19,11 +27,12 @@ const registers = async (req, res) => {
         password: md5(password),
         phonenumber,
       });
-      newUser.save().then(() => {
-        res.json({
-          registerStatus: true,
-          message: "Account Created successfully",
-        });
+
+      await newUser.save();
+
+      res.status(201).json({
+        registerStatus: true,
+        message: "Account Created successfully",
       });
     }
   } catch (error) {
@@ -34,22 +43,28 @@ const registers = async (req, res) => {
 
 const login = async (req, res) => {
   const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res
+      .status(400)
+      .json({ loginStatus: false, message: "Email and password are required" });
+  }
+
   try {
     const user = await User.findOne({ email });
+
     if (user && user.password === md5(password)) {
-      // Extract the _id from the user document and include it in the response
-      res.json({
+      res.status(200).json({
         loginStatus: true,
         message: "Login Successful",
         user: {
-          id: user._id, // Explicitly add the _id field as id
+          userId: user._id,
           email: user.email,
           username: user.username,
-          // add any other fields you want to return
         },
       });
     } else {
-      res.status(200).json({
+      res.status(401).json({
         loginStatus: false,
         message: "Invalid Credentials",
       });
