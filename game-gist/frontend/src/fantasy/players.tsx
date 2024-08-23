@@ -41,7 +41,11 @@ function Players({ player }: PlayerProps) {
       }}
     >
       <div>
-        <img className="image" src={imageURL} alt={player.name} />
+        <img
+          className="image"
+          src={`http://localhost:4001/uploads/${player.image}`}
+          alt={player.name}
+        />
       </div>
       <div>
         <h4 className="name" style={{ margin: 0 }}>

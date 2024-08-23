@@ -1,13 +1,24 @@
+import React, { useState, useEffect } from "react";
 import { PiTShirtFill } from "react-icons/pi";
-import { FootballPlayer as playerType } from "./FootballPlayer";
+import { FootballPlayer as PlayerType } from "./FootballPlayer";
 
 interface PlayerProps {
-  player: playerType | null;
+  player: PlayerType | null;
   position: string;
   onSelect: () => void;
 }
 
 function Player({ position, player, onSelect }: PlayerProps) {
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (player && player.image) {
+      const imageUrl = `http://localhost:4001/uploads/${player.image}`;
+      setImageSrc(imageUrl);
+      console.log(`Image URL: ${imageUrl}`); // Debugging line
+    }
+  }, [player]);
+
   return (
     <div
       onClick={onSelect}
@@ -16,17 +27,17 @@ function Player({ position, player, onSelect }: PlayerProps) {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
+        cursor: "pointer",
       }}
     >
-      {player ? (
+      {imageSrc ? (
         <img
-          src={`${
-            window.location.origin
-          }/team/${player.club.toLowerCase()}.png`}
-          alt={player.name}
+          src={imageSrc}
+          alt={player?.name || position}
           style={{
             height: 40,
             width: 40,
+            borderRadius: "50%",
           }}
         />
       ) : (

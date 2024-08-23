@@ -7,6 +7,8 @@ import Filter from "./filter";
 import PlayerList from "./playerLists";
 import useAuth from "../hooks/useAuth";
 import { FantasyNavbar } from "./fantasy";
+import Teamstats from "./team-stats";
+import "./fantasy.css";
 
 type Players = {
   FWD: (string | null)[];
@@ -60,17 +62,8 @@ function Field() {
   return (
     <div>
       <FantasyNavbar />
-      <div
-        style={{
-          color: "white",
-          display: "flex",
-          justifyContent: "center",
-          marginTop: "150px",
-          alignItems: "center",
-          padding: "30px",
-          gap: "30px",
-        }}
-      >
+      <div className="fieldss" style={{}}>
+        <Teamstats />
         <div className="field">
           <div className="player">
             {Object.keys(players).map((position, index) => (
@@ -97,8 +90,8 @@ function Field() {
             <Filter />
             <PlayerList />
           </div>
-          <button onClick={handleConfirm}>Confirm Selection</button>
         </div>
+        <button onClick={handleConfirm}>Confirm Selection</button>
       </div>
     </div>
   );
