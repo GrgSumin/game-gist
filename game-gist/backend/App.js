@@ -8,9 +8,9 @@ const port = process.env.PORT || 4001;
 const app = express();
 
 
-app.get('/league', (req, res) => {
-  return res.json({'data':'ok'})
-})
+// app.get('/league', (req, res) => {
+//   return res.json({'data':'ok'})
+// })
 
 // CORS configuration
 const corsOptions = {
