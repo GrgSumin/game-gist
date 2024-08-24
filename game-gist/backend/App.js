@@ -7,6 +7,11 @@ const port = process.env.PORT || 4001;
 
 const app = express();
 
+
+app.get('/league', (req, res) => {
+  return res.json({'data':'ok'})
+})
+
 // CORS configuration
 const corsOptions = {
   origin: "http://localhost:5173", // Frontend URL
