@@ -4,4 +4,8 @@
 - React
 - Nodejs
 - Mongodb
+- Material UI
+- Recoil (state management)
+
+
 
