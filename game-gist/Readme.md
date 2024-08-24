@@ -1,6 +1,7 @@
-#project readme
+# project readme
 
-#Tools Used
+# Tools Used
 - React
 - Nodejs
 - Mongodb
+
