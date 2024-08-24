@@ -7,37 +7,36 @@ const port = process.env.PORT || 4001;
 
 const app = express();
 
-
-// app.get('/league', (req, res) => {
-//   return res.json({'data':'ok'})
-// })
-
-// app.get('/scoreboard', (req, res) => {
-  // return res.json({'data': [] })
-  // })
-
 // CORS configuration
-const corsOptions = {
-  origin: "http://localhost:5173", // Frontend URL
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-};
 
 // Apply CORS middleware with options
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json());
 
 // Route handlers
 const accRoutes = require("./routes/Users");
 const newsRoutes = require("./routes/News");
 const groupRoutes = require("./routes/Group");
-const footballPlayerRoutes = require("./routes/footballplayer");
+const teamRoutes = require("./routes/teamRoutes");
+const footballPlayerRoutes = require("./routes/footballPlayer");
+const { default: axios } = require("axios");
+const playerRoutes = require("./routes/player");
 
+app.get("/league", async (req, res) => {
+  const { data } = await axios.get(
+    "https://api.sportmonks.com/v3/football/leagues?api_token=qPuTNcOVABfqx6OHJ5VhSRljDfFan4U4Jh4QDXnVWi5WBgdiBEqFskqw9Afb"
+  );
+  return res.json({
+    data,
+  });
+});
 app.use("/api/users", accRoutes);
 app.use("/api/news", newsRoutes);
 app.use("/uploads", express.static("uploads"));
 app.use("/api/groups", groupRoutes);
+app.use("/api/teams", teamRoutes);
 app.use("/api/footballplayers", footballPlayerRoutes);
+app.use("/api/players", playerRoutes);
 
 // MongoDB connection
 mongoose
