@@ -12,6 +12,10 @@ const app = express();
 //   return res.json({'data':'ok'})
 // })
 
+// app.get('/scoreboard', (req, res) => {
+  // return res.json({'data': [] })
+  // })
+
 // CORS configuration
 const corsOptions = {
   origin: "http://localhost:5173", // Frontend URL
