@@ -15,13 +15,11 @@ const News: React.FC = () => {
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const response = await fetch(
-          "/api/.netlify/functions/api/news/onefootball"
-        );
+        const response = await fetch("http://localhost:4001/fantasynews"); // Fetch from your backend endpoint
         if (!response.ok) {
           throw new Error("Network response was not ok");
         }
-        const data: NewsArticle[] = await response.json();
+        const data = await response.json();
         setNews(data);
       } catch (error) {
         setError("Failed to fetch news");
@@ -34,7 +32,7 @@ const News: React.FC = () => {
   }, []);
 
   if (loading) return <p>Loading...</p>;
-  if (error) return <p>{error}</p>;
+  if (error) return <p style={{ color: "red" }}>{error}</p>;
 
   return (
     <div className="news-container">

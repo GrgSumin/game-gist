@@ -23,13 +23,13 @@ export const FantasyNavbar: React.FC = () => {
         Transfer
       </NavLink>
       <NavLink
-        to="/fantasynews"
+        to="/group"
         style={({ isActive }) => ({
           color: isActive ? "#B5D7F3" : "white",
           textDecoration: "none",
         })}
       >
-        News
+        Group
       </NavLink>
       <NavLink
         to="/myteam"

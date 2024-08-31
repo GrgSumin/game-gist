@@ -1,0 +1,36 @@
+/* Dashboard.css */
+
+nav {
+  background-color: #333; /* Dark background color */
+  padding: 15px; /* Padding around the navbar */
+}
+
+nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex; /* Flexbox for horizontal layout */
+}
+
+nav ul li {
+  margin-right: 20px; /* Space between the items */
+  font-size: 18px; /* Larger font size */
+}
+
+nav a {
+  text-decoration: none;
+  color: #fff; /* White text color */
+  padding: 10px 15px; /* Padding around the links */
+  border-radius: 5px; /* Rounded corners */
+  transition: background-color 0.3s ease; /* Smooth transition */
+}
+
+nav a:hover {
+  background-color: #007bff; /* Blue background on hover */
+  color: #fff; /* White text color on hover */
+}
+
+nav a.active {
+  background-color: #ff6347; /* Highlight color for active link */
+  color: #fff; /* White text color for active link */
+}

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useRecoilValue, useRecoilState } from "recoil";
 import { myPlayersByPosition, myTeamState } from "../atoms/myTeam";
 import Player from "./positions";
@@ -43,7 +43,7 @@ function Field() {
     });
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (selectedPlayers.length < 11) {
       alert("You must select 11 players.");
       return;
@@ -51,10 +51,38 @@ function Field() {
 
     if (window.confirm("Are you sure you want to save these players?")) {
       if (userId) {
+        // Save to localStorage
         localStorage.setItem(
           `selectedPlayers-${userId}`,
           JSON.stringify(selectedPlayers)
         );
+
+        // Save to backend
+        try {
+          const response = await fetch(
+            "http://localhost:4001/api/players/save",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                userId,
+                selectedPlayers,
+              }),
+            }
+          );
+
+          if (response.ok) {
+            alert("Players saved successfully.");
+          } else {
+            const errorData = await response.json();
+            alert(`Failed to save players: ${errorData.message}`);
+          }
+        } catch (error) {
+          console.error("Error saving players:", error);
+          alert("An error occurred while saving players.");
+        }
       }
     }
   };
@@ -62,7 +90,7 @@ function Field() {
   return (
     <div>
       <FantasyNavbar />
-      <div className="fieldss" style={{}}>
+      <div className="fieldss">
         <Teamstats />
         <div className="field">
           <div className="player">

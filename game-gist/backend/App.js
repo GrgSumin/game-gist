@@ -30,6 +30,19 @@ app.get("/league", async (req, res) => {
     data,
   });
 });
+app.get("/fantasynews", async (req, res) => {
+  try {
+    const response = await axios.get(
+      "https://footballnewsapi.netlify.app/.netlify/functions/api/news/onefootball"
+    );
+    const data = response.data;
+    res.json(data);
+  } catch (error) {
+    console.error("Error fetching news:", error);
+    res.status(500).json({ message: "Failed to fetch news" });
+  }
+});
+
 app.use("/api/users", accRoutes);
 app.use("/api/news", newsRoutes);
 app.use("/uploads", express.static("uploads"));

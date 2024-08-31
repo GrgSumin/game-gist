@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const User = require("../model/User"); // Ensure correct path
 
 const GroupSchema = new mongoose.Schema({
   creatorId: {
@@ -10,6 +9,11 @@ const GroupSchema = new mongoose.Schema({
   groupCode: {
     type: String,
     required: true,
+    unique: true, // Ensure unique group codes
+  },
+  groupName: {
+    type: String,
+    required: true,
   },
   members: [
     {
@@ -18,9 +22,11 @@ const GroupSchema = new mongoose.Schema({
         required: true,
         ref: "User",
       },
-      username: String,
-      teamName: String,
-      totalPoints: Number,
+      teamId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Team",
+        // Removed `required: true` to make it optional
+      },
     },
   ],
 });

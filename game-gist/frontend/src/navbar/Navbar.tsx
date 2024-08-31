@@ -67,7 +67,7 @@ const Navbar: React.FC = () => {
         ) : (
           <>
             <NavLink
-              to="/standing"
+              to="/leagues"
               className={({ isActive }) =>
                 isActive ? "nav-Link active" : "nav-Link"
               }
@@ -76,7 +76,7 @@ const Navbar: React.FC = () => {
                 textDecoration: "none",
               })}
             >
-              <li>Standing</li>
+              <li>Leagues</li>
             </NavLink>
             <NavLink
               to="/fantasy"

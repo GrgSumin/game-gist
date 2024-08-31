@@ -1,0 +1,74 @@
+/* src/components/team.css */
+
+.my-team-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: auto;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.my-team-header {
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.my-team-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.my-team-header h2 {
+  margin: 10px 0 0;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.my-team {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+.my-team-player {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  width: 150px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.my-team-player img {
+  border-radius: 8px;
+  object-fit: cover;
+  height: 100px;
+  width: 90px;
+}
+
+.my-team-player .points {
+  margin-top: 10px;
+}
+
+.my-team-player h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.my-team-player p {
+  margin: 5px 0 0;
+  font-size: 14px;
+  color: #555;
+}

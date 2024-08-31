@@ -1,5 +1,6 @@
+// controller/footballPlayer.js
+
 const FootballPlayer = require("../model/FootballPlayer");
-const path = require("path");
 
 const createFootballPlayer = async (req, res) => {
   try {
@@ -18,7 +19,7 @@ const createFootballPlayer = async (req, res) => {
     await newPlayer.save();
 
     res
-      .status(201)
+      .status(200)
       .json({ message: "Football player created successfully!", newPlayer });
   } catch (error) {
     res.status(500).json({ message: "Error creating football player", error });
@@ -27,13 +28,32 @@ const createFootballPlayer = async (req, res) => {
 
 const getAllFootballPlayers = async (req, res) => {
   try {
+    console.log("Fetching all football players...");
     const players = await FootballPlayer.find();
     res.status(200).json(players);
   } catch (error) {
     res.status(500).json({ message: "Error fetching football players", error });
   }
 };
+
+// New function to fetch a player by ID
+const getFootballPlayerById = async (req, res) => {
+  try {
+    const playerId = req.params.playerId;
+    const player = await FootballPlayer.findById(playerId);
+
+    if (!player) {
+      return res.status(404).json({ message: "Player not found" });
+    }
+
+    res.status(200).json({ success: true, player });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching player", error });
+  }
+};
+
 module.exports = {
   createFootballPlayer,
   getAllFootballPlayers,
+  getFootballPlayerById, // Export the new function
 };

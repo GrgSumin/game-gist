@@ -1,0 +1,115 @@
+/* group.css */
+
+/* Container for the entire component */
+.group-list-container {
+    padding: 16px;
+    background-color: #fff; /* White background for the whole component */
+    border-radius: 8px; /* Optional: Rounded corners for the container */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Optional: Shadow for subtle depth */
+  }
+  
+  /* Title of the component */
+  .group-title {
+    font-size: 2rem;
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+  
+  /* Group details section */
+  .group-details {
+    font-size: 1.5rem;
+    font-weight: 400;
+    margin-bottom: 16px;
+  }
+  
+  /* Divider styling */
+  .group-divider {
+    margin: 16px 0;
+  }
+  
+  /* Table styling */
+  .group-member-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  /* Table header styling */
+  .group-member-table th {
+    background-color: #f0f0f0; /* Light gray background for headers */
+    padding: 12px;
+    text-align: left;
+    font-weight: 500;
+  }
+  
+  /* Table cell styling */
+  .group-member-table td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd; /* Light border for rows */
+  }
+  
+  /* Back button styling */
+  .back-button {
+    margin-top: 16px;
+  }
+  /* src/components/group.css */
+
+.selected-players-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: auto;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.back-button {
+  margin-bottom: 20px;
+  display: inline-block;
+  background-color: #007bff;
+  color: white;
+}
+
+.group-details {
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+.my-team {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+.my-team-player {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  width: 150px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.my-team-player img {
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.my-team-player .points {
+  margin-top: 10px;
+}
+
+.my-team-player h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.my-team-player p {
+  margin: 5px 0 0;
+  font-size: 14px;
+  color: #555;
+}

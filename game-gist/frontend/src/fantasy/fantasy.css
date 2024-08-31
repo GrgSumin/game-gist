@@ -249,7 +249,7 @@
 .position-inner {
   display: flex;
   width: 360px;
-  justify-content: space-around;
+  justify-content: center;
 }
 
 /* Media queries for smaller screens */
@@ -272,7 +272,7 @@
     width: 100px;
   }
   .position-0 {
-  top: 2%;
+  top: 1%;
   left:5%;
 }
 
@@ -416,22 +416,4 @@ nav a:hover {
   .news-article {
     max-width: 23%;
   }
-}
-/* myteam */
-.my-team{
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  padding: 1rem;
-}
-.my-team-player{
-  border: 2px solid #84CFDE;
-  width: 150px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.points{
-  width: 100%;
-  border: 1px solid #ddd;
 }

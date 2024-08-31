@@ -1,112 +1,64 @@
-import { useEffect, useState } from "react";
-import "./News.css";
-import Carousel from "react-material-ui-carousel";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import "../fantasy/fantasy.css";
 
-function Headline() {
-  const [news, setNews] = useState<any[]>([]);
-  const [headline, setHeadline] = useState<any[]>([]);
-  const navigate = useNavigate();
+interface NewsArticle {
+  title: string;
+  url: string;
+  img: string;
+}
+
+const News: React.FC = () => {
+  const [news, setNews] = useState<NewsArticle[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchNews = async () => {
       try {
-        const response = await fetch("http://localhost:4001/api/news/getNews", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
+        const response = await fetch("http://localhost:4001/fantasynews");
         if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Error fetching news:", errorData);
-          // Optionally set some error state here
-          return;
+          throw new Error("Network response was not ok");
         }
-
         const data = await response.json();
-        setHeadline(data.headlines || []); // Ensure default to empty array
-        setNews(data.getallNews || []); // Ensure default to empty array
+
+        // Log the response to inspect its structure
+        console.log(data);
+
+        // Check if data is an array
+        if (Array.isArray(data)) {
+          setNews(data);
+        } else {
+          setError("Unexpected data format");
+        }
       } catch (error) {
-        console.error("Fetch error:", error);
-        // Optionally set some error state here
+        if (error instanceof Error) {
+          setError(`Failed to fetch news: ${error.message}`);
+        } else {
+          setError("An unexpected error occurred");
+        }
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchData();
+    fetchNews();
   }, []);
 
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p style={{ color: "red" }}>{error}</p>;
+
   return (
-    <div>
-      <h1 style={{ color: "aliceblue", textAlign: "center" }}>News</h1>
-
-      <Carousel animation="slide">
-        {headline.length > 0 ? (
-          headline.map((item: any, index: number) => (
-            <Link key={index} to="/single" state={{ id: item._id }}>
-              <div className="headline">
-                <div className="img">
-                  <img
-                    src={`http://localhost:4001/uploads/${item.image}`}
-                    alt={item.title}
-                    height="400px"
-                    width="300px"
-                    loading="lazy" // Add lazy loading
-                  />
-                </div>
-                <div className="topics">
-                  <h1>{item.title}</h1>
-                  <h2>{item.short_desc}</h2>
-                  <a href={item.url} target="_blank" rel="noopener noreferrer">
-                    {item.url}
-                  </a>
-                </div>
-              </div>
-            </Link>
-          ))
-        ) : (
-          <p>No headlines available</p>
-        )}
-      </Carousel>
-
-      <div className="primary">
-        {news.length > 0 ? (
-          news.map((item: any) => (
-            <Link key={item._id} to="/single" state={{ id: item._id }}>
-              <div
-                className="news"
-                onClick={() =>
-                  navigate(`/single/${item._id}`, {
-                    state: { id: item._id },
-                  })
-                }
-              >
-                <div className="img">
-                  <img
-                    src={`http://localhost:4001/uploads/${item.image}`}
-                    alt={item.title}
-                    height="300px"
-                    width="200px"
-                    loading="lazy" // Add lazy loading
-                  />
-                </div>
-                <div className="topics">
-                  <h1>{item.title}</h1>
-                  <h2>{item.short_desc}</h2>
-                  <a href={item.url} target="_blank" rel="noopener noreferrer">
-                    {item.url}
-                  </a>
-                </div>
-              </div>
-            </Link>
-          ))
-        ) : (
-          <p>No news available</p>
-        )}
-      </div>
+    <div className="news-container">
+      {news.map((article, index) => (
+        <div key={index} className="news-article">
+          <a href={article.url} target="_blank" rel="noopener noreferrer">
+            <img src={article.img} alt={article.title} />
+            <h3>{article.title}</h3>
+          </a>
+        </div>
+      ))}
     </div>
   );
-}
+};
 
-export default Headline;
+export default News;

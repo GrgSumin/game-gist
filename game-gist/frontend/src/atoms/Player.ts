@@ -5,6 +5,12 @@ import { FootballPlayer, Positions } from "../fantasy/FootballPlayer";
 type PositionFilter = Positions | "All";
 
 // Selector to fetch all football players from the API
+export const selectedPlayersState = atom<FootballPlayer[]>({
+  key: "selectedPlayersState",
+  default: [],
+});
+
+// Selector to fetch updated player data from the API
 export const allPlayerState = selector<FootballPlayer[]>({
   key: "allPlayerState",
   get: async () => {
@@ -16,30 +22,21 @@ export const allPlayerState = selector<FootballPlayer[]>({
         throw new Error("Network response was not ok");
       }
       const data = await response.json();
-
-      // Map API data to FootballPlayer type
       const players: FootballPlayer[] = data.map((player: any) => ({
-        id: player._id, // Map _id to id
+        id: player._id,
         name: player.name,
         club: player.club,
         price: player.price,
         totalpoints: player.totalpoints,
-        position: player.position as Positions, // Ensure position is cast to Positions enum
+        position: player.position,
         image: player.image,
       }));
-
       return players;
     } catch (error) {
       console.error("Failed to fetch players data", error);
-      return []; // Return an empty array in case of error
+      return [];
     }
   },
-});
-
-// Atom to hold the selected players
-export const selectedPlayersState = atom<FootballPlayer[]>({
-  key: "selectedPlayersState",
-  default: [],
 });
 
 // Atom to hold the position filters

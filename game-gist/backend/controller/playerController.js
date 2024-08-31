@@ -2,7 +2,7 @@
 const Player = require("../model/Player");
 const FootballPlayer = require("../model/FootballPlayer");
 
-saveSelectedPlayers = async (req, res) => {
+const saveSelectedPlayers = async (req, res) => {
   const { userId, selectedPlayers } = req.body;
 
   try {
@@ -39,14 +39,29 @@ saveSelectedPlayers = async (req, res) => {
   }
 };
 
-getSelectedPlayers = async (req, res) => {
-  const { userId } = req.query;
+const getSelectedPlayers = async (req, res) => {
+  const { userId } = req.params;
 
   try {
     const record = await Player.findOne({ userId });
 
     if (record) {
-      res.status(200).json(record.selectedPlayers);
+      // Update the points, names, and images in selected players before returning
+      const updatedPlayers = await Promise.all(
+        record.selectedPlayers.map(async (player) => {
+          const footballPlayer = await FootballPlayer.findById(player.id);
+          return {
+            ...player,
+            name: footballPlayer ? footballPlayer.name : player.name,
+            image: footballPlayer ? footballPlayer.image : player.image,
+            totalpoints: footballPlayer
+              ? footballPlayer.totalpoints
+              : player.totalpoints,
+          };
+        })
+      );
+
+      res.status(200).json(updatedPlayers);
     } else {
       res.status(404).json([]);
     }
@@ -54,33 +69,5 @@ getSelectedPlayers = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch players" });
   }
 };
+
 module.exports = { saveSelectedPlayers, getSelectedPlayers };
-const mongoose = require("mongoose");
-
-const playerSchema = new mongoose.Schema({
-  userId: { type: String, required: true },
-  selectedPlayers: [
-    {
-      id: { type: String, required: true },
-      name: String,
-      club: String,
-      price: Number,
-      position: String,
-      totalpoints: Number,
-      image: String, // Add image field
-    },
-  ],
-});
-
-module.exports = mongoose.model("Player", playerSchema);
-const express = require("express");
-const {
-  saveSelectedPlayers,
-  getSelectedPlayers,
-} = require("../controller/playerController");
-const router = express.Router();
-
-router.post("/saveSelectedPlayers", saveSelectedPlayers);
-router.get("/getSelectedPlayers", getSelectedPlayers);
-
-module.exports = router;
