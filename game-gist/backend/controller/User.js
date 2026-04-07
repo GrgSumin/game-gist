@@ -1,78 +1,74 @@
-const md5 = require("md5");
+const jwt = require("jsonwebtoken");
 const User = require("../model/User");
+const { validationResult } = require("express-validator");
 
-const registers = async (req, res) => {
-  const { username, email, password, phonenumber } = req.body;
+function generateToken(user) {
+  return jwt.sign(
+    { id: user._id, username: user.username, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+}
 
-  if (!username || !email || !password || !phonenumber) {
-    return res
-      .status(400)
-      .json({ registerStatus: false, message: "All fields are required" });
-  }
-
+exports.register = async (req, res) => {
   try {
-    let user = await User.findOne({
-      $or: [{ email }, { username }],
-    });
-
-    if (user) {
-      return res.status(200).json({
-        registerStatus: false,
-        message: "Email or Username already exists",
-      });
-    } else {
-      const newUser = new User({
-        email,
-        username,
-        password: md5(password),
-        phonenumber,
-      });
-
-      await newUser.save();
-
-      res.status(201).json({
-        registerStatus: true,
-        message: "Account Created successfully",
-      });
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
-  } catch (error) {
-    console.log("Error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+
+    const { email, username, password } = req.body;
+
+    const existing = await User.findOne({ $or: [{ email }, { username }] });
+    if (existing) {
+      const field = existing.email === email ? "Email" : "Username";
+      return res.status(409).json({ error: `${field} already taken` });
+    }
+
+    const user = await User.create({ email, username, password });
+    const token = generateToken(user);
+
+    res.status(201).json({ user, token });
+  } catch (err) {
+    res.status(500).json({ error: "Registration failed" });
   }
 };
 
-const login = async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res
-      .status(400)
-      .json({ loginStatus: false, message: "Email and password are required" });
-  }
-
+exports.login = async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, password } = req.body;
     const user = await User.findOne({ email });
-
-    if (user && user.password === md5(password)) {
-      res.status(200).json({
-        loginStatus: true,
-        message: "Login Successful",
-        user: {
-          userId: user._id,
-          email: user.email,
-          username: user.username,
-        },
-      });
-    } else {
-      res.status(401).json({
-        loginStatus: false,
-        message: "Invalid Credentials",
-      });
+    if (!user || !(await user.comparePassword(password))) {
+      return res.status(401).json({ error: "Invalid email or password" });
     }
-  } catch (error) {
-    console.log("Error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+
+    const token = generateToken(user);
+    res.json({ user, token });
+  } catch (err) {
+    res.status(500).json({ error: "Login failed" });
   }
 };
 
-module.exports = { registers, login };
+exports.getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch profile" });
+  }
+};
+
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password").sort({ createdAt: -1 });
+    res.json({ users });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+};
