@@ -1,71 +1,75 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const path = require("path");
 require("dotenv").config();
 
+const app = express();
 const port = process.env.PORT || 4001;
 
-const app = express();
+// Middleware
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(",")
+      : ["http://localhost:5173", "http://localhost:5174"],
+    credentials: true,
+  })
+);
+app.use(express.json({ limit: "10mb" }));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// CORS configuration
-
-// Apply CORS middleware with options
-app.use(cors());
-app.use(express.json());
-
-// Route handlers
-const accRoutes = require("./routes/Users");
+// Routes
+const userRoutes = require("./routes/Users");
 const newsRoutes = require("./routes/News");
 const groupRoutes = require("./routes/Group");
-const teamRoutes = require("./routes/teamRoutes");
-const footballPlayerRoutes = require("./routes/footballPlayer");
-const { default: axios } = require("axios");
-const playerRoutes = require("./routes/player");
+const footballDataRoutes = require("./routes/footballData");
+const fantasyRoutes = require("./routes/fantasy");
 
-app.get("/league", async (req, res) => {
-  const { data } = await axios.get(
-    "https://api.sportmonks.com/v3/football/leagues?api_token=qPuTNcOVABfqx6OHJ5VhSRljDfFan4U4Jh4QDXnVWi5WBgdiBEqFskqw9Afb"
-  );
-  return res.json({
-    data,
-  });
-});
-app.get("/fantasynews", async (req, res) => {
-  try {
-    const response = await axios.get(
-      "https://footballnewsapi.netlify.app/.netlify/functions/api/news/onefootball"
-    );
-    const data = response.data;
-    res.json(data);
-  } catch (error) {
-    console.error("Error fetching news:", error);
-    res.status(500).json({ message: "Failed to fetch news" });
-  }
-});
-
-app.use("/api/users", accRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/news", newsRoutes);
-app.use("/uploads", express.static("uploads"));
 app.use("/api/groups", groupRoutes);
-app.use("/api/teams", teamRoutes);
-app.use("/api/footballplayers", footballPlayerRoutes);
-app.use("/api/players", playerRoutes);
+app.use("/api/football", footballDataRoutes);
+app.use("/api/fantasy", fantasyRoutes);
 
-// MongoDB connection
+// Health check
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// 404
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found" });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  if (err.name === "MulterError") {
+    return res.status(400).json({ error: err.message });
+  }
+  res.status(500).json({ error: "Internal server error" });
+});
+
+// Database connection
+const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/game-gist";
 mongoose
-  .connect("mongodb://localhost:27017/game-gist", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    console.log("Connected to MongoDB successfully");
-  })
-  .catch((error) => {
-    console.error("MongoDB connection error:", error);
+  .connect(mongoUri)
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
     process.exit(1);
   });
 
-// Start server
+// Ensure uploads directory exists
+const fs = require("fs");
+const uploadsDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Server running on port ${port}`);
 });
+
+module.exports = app;
