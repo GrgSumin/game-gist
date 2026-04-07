@@ -18,3 +18,14 @@ thumb
 sketch
 
 # End of https://www.toptal.com/developers/gitignore/api/react
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Uploads
+uploads/
+
+# Claude
+.claude/
