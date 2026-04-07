@@ -60,8 +60,8 @@ export const getGroupMembers = (groupCode: string) =>
   api.get<{ group: Group }>(`/api/groups/${groupCode}/members`);
 
 // News
-export const getNews = (page = 1) =>
-  api.get<{ articles: NewsArticle[]; headlines: NewsArticle[]; pagination: { total: number; pages: number } }>(`/api/news?page=${page}`);
+export const getNews = (page = 1, source?: string) =>
+  api.get<{ articles: NewsArticle[]; headlines: NewsArticle[]; pagination: { total: number; pages: number } }>(`/api/news?page=${page}${source ? `&source=${source}` : ""}`);
 
 export const getNewsById = (id: string) =>
   api.get<{ article: NewsArticle }>(`/api/news/${id}`);

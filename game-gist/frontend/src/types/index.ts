@@ -95,6 +95,7 @@ export interface NewsArticle {
   description: string;
   image: string;
   url: string;
+  source: string;
   isHeadline: boolean;
   category: string;
   createdAt: string;

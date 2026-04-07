@@ -1,7 +1,7 @@
 const express = require("express");
 const multer = require("multer");
 const { body } = require("express-validator");
-const { addNews, getNews, getNewsById, deleteNews } = require("../controller/news");
+const { addNews, getNews, getNewsById, deleteNews, getApiNews } = require("../controller/news");
 const { auth, adminOnly } = require("../middleware/auth");
 
 const router = express.Router();
@@ -34,6 +34,7 @@ router.post(
 );
 
 router.get("/", getNews);
+router.get("/external", getApiNews);
 router.get("/:id", getNewsById);
 router.delete("/:id", auth, adminOnly, deleteNews);
 

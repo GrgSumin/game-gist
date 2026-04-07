@@ -7,6 +7,7 @@ const NewsSchema = new mongoose.Schema(
     description: { type: String, required: true },
     image: { type: String, default: "" },
     url: { type: String, default: "" },
+    source: { type: String, default: "admin" },
     isHeadline: { type: Boolean, default: false },
     category: {
       type: String,
