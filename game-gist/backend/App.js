@@ -55,7 +55,12 @@ app.use((err, req, res, next) => {
 const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/game-gist";
 mongoose
   .connect(mongoUri)
-  .then(() => console.log("Connected to MongoDB"))
+  .then(() => {
+    console.log("Connected to MongoDB");
+    // Start cron jobs after DB is connected
+    const { startCronJobs } = require("./services/cron");
+    startCronJobs();
+  })
   .catch((err) => {
     console.error("MongoDB connection error:", err);
     process.exit(1);

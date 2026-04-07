@@ -8,6 +8,7 @@ const {
   syncPlayers,
   advanceGameweek,
   getGameweeks,
+  getSyncLogs,
   getPlayerGameweekHistory,
   getPlayers,
   getPlayerById,
@@ -25,6 +26,7 @@ router.get("/players", getPlayers);
 router.get("/players/:id", getPlayerById);
 router.get("/players/:id/history", getPlayerGameweekHistory);
 router.get("/gameweeks", getGameweeks);
+router.get("/sync-logs", auth, adminOnly, getSyncLogs);
 router.post("/sync-players", auth, adminOnly, syncPlayers);
 router.post("/advance-gameweek", auth, adminOnly, advanceGameweek);
 

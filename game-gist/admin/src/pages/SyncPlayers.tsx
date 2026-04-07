@@ -4,6 +4,9 @@ import {
 } from "@mui/material";
 import SyncIcon from "@mui/icons-material/Sync";
 import SkipNextIcon from "@mui/icons-material/SkipNext";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorIcon from "@mui/icons-material/Error";
 import toast from "react-hot-toast";
 import api from "../api";
 
@@ -20,15 +23,32 @@ interface GameweekInfo {
   createdAt: string;
 }
 
+interface SyncLogEntry {
+  _id: string;
+  type: string;
+  leagueName?: string;
+  trigger: string;
+  status: string;
+  totalSynced?: number;
+  pointsUpdated?: number;
+  gameweek?: number;
+  error?: string;
+  createdAt: string;
+}
+
 export default function SyncPlayers() {
   const [syncing, setSyncing] = useState<number | null>(null);
   const [advancing, setAdvancing] = useState(false);
   const [results, setResults] = useState<Record<number, string>>({});
   const [gameweeks, setGameweeks] = useState<GameweekInfo[]>([]);
+  const [syncLogs, setSyncLogs] = useState<SyncLogEntry[]>([]);
 
-  useEffect(() => {
+  const fetchData = () => {
     api.get("/api/football/gameweeks").then((r) => setGameweeks(r.data.gameweeks)).catch(() => {});
-  }, []);
+    api.get("/api/football/sync-logs?limit=15").then((r) => setSyncLogs(r.data.logs)).catch(() => {});
+  };
+
+  useEffect(() => { fetchData(); }, []);
 
   const currentGw = gameweeks.find((g) => g.isCurrent);
 
@@ -39,7 +59,7 @@ export default function SyncPlayers() {
       const msg = `Synced ${data.totalSynced} players, ${data.pointsUpdated} scored (GW${data.gameweek})`;
       setResults((prev) => ({ ...prev, [leagueId]: msg }));
       toast.success(msg);
-      api.get("/api/football/gameweeks").then((r) => setGameweeks(r.data.gameweeks)).catch(() => {});
+      fetchData();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || "Sync failed";
       setResults((prev) => ({ ...prev, [leagueId]: `Error: ${msg}` }));
@@ -54,7 +74,7 @@ export default function SyncPlayers() {
     try {
       const { data } = await api.post("/api/football/advance-gameweek");
       toast.success(`Advanced to Gameweek ${data.gameweek.number}`);
-      api.get("/api/football/gameweeks").then((r) => setGameweeks(r.data.gameweeks)).catch(() => {});
+      fetchData();
     } catch {
       toast.error("Failed to advance gameweek");
     } finally {
@@ -62,9 +82,18 @@ export default function SyncPlayers() {
     }
   };
 
+  const formatTime = (d: string) =>
+    new Date(d).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom fontWeight={800}>Sync Players</Typography>
+
+      {/* Auto-sync schedule */}
+      <Alert severity="success" icon={<ScheduleIcon />} sx={{ mb: 3 }}>
+        <strong>Auto-sync is active.</strong> Players sync automatically at <strong>6:00 AM</strong> and <strong>10:00 PM UTC</strong> daily.
+        Gameweek advances every <strong>Monday at 3:00 AM UTC</strong>. You can still sync manually anytime.
+      </Alert>
 
       {/* Gameweek info */}
       <Card sx={{ mb: 3 }}>
@@ -126,6 +155,45 @@ export default function SyncPlayers() {
           </CardContent>
         </Card>
       ))}
+
+      {/* Sync Logs */}
+      {syncLogs.length > 0 && (
+        <Card sx={{ mt: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>Sync History</Typography>
+            {syncLogs.map((log) => (
+              <Box key={log._id} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", py: 1, borderBottom: "1px solid #2A2A2A", gap: 1, flexWrap: "wrap" }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  {log.status === "success" ? (
+                    <CheckCircleIcon sx={{ fontSize: 18, color: "success.main" }} />
+                  ) : (
+                    <ErrorIcon sx={{ fontSize: 18, color: "error.main" }} />
+                  )}
+                  <Typography variant="body2" fontWeight={600}>
+                    {log.type === "gameweek-advance" ? `Gameweek ${log.gameweek} started` : log.leagueName}
+                  </Typography>
+                  <Chip
+                    label={log.trigger}
+                    size="small"
+                    variant="outlined"
+                    color={log.trigger === "auto" ? "info" : "default"}
+                    sx={{ height: 20, fontSize: 11 }}
+                  />
+                  {log.type === "player-sync" && log.status === "success" && (
+                    <Typography variant="caption" color="text.secondary">
+                      {log.totalSynced} players, {log.pointsUpdated} scored
+                    </Typography>
+                  )}
+                  {log.error && (
+                    <Typography variant="caption" color="error.main">{log.error}</Typography>
+                  )}
+                </Box>
+                <Typography variant="caption" color="text.secondary">{formatTime(log.createdAt)}</Typography>
+              </Box>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Gameweek history */}
       {gameweeks.length > 0 && (

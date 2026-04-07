@@ -1,18 +1,20 @@
 const {
   fetchLeagues,
   fetchFixtures,
-  fetchPlayers,
   fetchStandings,
   fetchTopScorers,
   fetchTopAssists,
-  mapApiPosition,
-  calculateFantasyPoints,
   CURRENT_SEASON,
 } = require("../services/apiFootball");
 const FootballPlayer = require("../model/FootballPlayer");
 const PlayerSnapshot = require("../model/PlayerSnapshot");
 const Gameweek = require("../model/Gameweek");
-const FantasyTeam = require("../model/FantasyTeam");
+const SyncLog = require("../model/SyncLog");
+const {
+  syncLeague,
+  updateTeamScores,
+  advanceToNextGameweek,
+} = require("../services/syncService");
 
 exports.getLeagues = async (req, res) => {
   try {
@@ -63,166 +65,50 @@ exports.getTopAssists = async (req, res) => {
   }
 };
 
-// Sync players AND calculate gameweek points from stat diffs
+// Sync players (manual trigger from admin)
 exports.syncPlayers = async (req, res) => {
   try {
     const { league = 39, season = CURRENT_SEASON } = req.query;
+    const leagueName = { 39: "Premier League", 2: "Champions League", 78: "Bundesliga" }[league] || "Unknown";
 
-    // Get or create current gameweek
-    let currentGw = await Gameweek.findOne({ isCurrent: true });
-    if (!currentGw) {
-      const lastGw = await Gameweek.findOne().sort({ number: -1 });
-      const gwNumber = lastGw ? lastGw.number + 1 : 1;
-      currentGw = await Gameweek.create({
-        number: gwNumber,
-        label: `Gameweek ${gwNumber}`,
-        startDate: new Date(),
-        isCurrent: true,
-        isActive: true,
-      });
-    }
+    const result = await syncLeague(Number(league), Number(season));
+    const teamsUpdated = await updateTeamScores(result.gameweek);
 
-    let page = 1;
-    let totalSynced = 0;
-    let hasMore = true;
-    let pointsUpdated = 0;
-
-    while (hasMore && page <= 5) {
-      const data = await fetchPlayers(Number(league), Number(season), page);
-      const players = data.response || [];
-
-      if (players.length === 0) {
-        hasMore = false;
-        break;
-      }
-
-      for (const item of players) {
-        const player = item.player;
-        const stat = item.statistics?.[0];
-        if (!stat || !stat.team) continue;
-
-        const position = mapApiPosition(stat.games?.position || "Midfielder");
-        const priceMap = { GK: 4.5, DEF: 5.0, MID: 6.0, FWD: 7.0 };
-
-        const newStats = {
-          appearances: stat.games?.appearences || 0,
-          goals: stat.goals?.total || 0,
-          assists: stat.goals?.assists || 0,
-          cleanSheets: stat.goals?.saves ? Math.floor(stat.goals.saves / 3) : 0,
-          yellowCards: stat.cards?.yellow || 0,
-          redCards: stat.cards?.red || 0,
-          minutesPlayed: stat.games?.minutes || 0,
-        };
-
-        // Get existing player to compare stats
-        const existing = await FootballPlayer.findOne({ apiId: player.id });
-
-        // Calculate diff-based gameweek points
-        let gwPoints = 0;
-        if (existing) {
-          const diff = {
-            goals: Math.max(0, newStats.goals - (existing.stats?.goals || 0)),
-            assists: Math.max(0, newStats.assists - (existing.stats?.assists || 0)),
-            cleanSheets: Math.max(0, newStats.cleanSheets - (existing.stats?.cleanSheets || 0)),
-            yellowCards: Math.max(0, newStats.yellowCards - (existing.stats?.yellowCards || 0)),
-            redCards: Math.max(0, newStats.redCards - (existing.stats?.redCards || 0)),
-            minutesPlayed: Math.max(0, newStats.minutesPlayed - (existing.stats?.minutesPlayed || 0)),
-          };
-
-          gwPoints = calculateFantasyPoints(diff, position);
-        }
-
-        // Update player
-        const updatedPlayer = await FootballPlayer.findOneAndUpdate(
-          { apiId: player.id },
-          {
-            apiId: player.id,
-            name: player.name,
-            firstname: player.firstname || "",
-            lastname: player.lastname || "",
-            age: player.age,
-            nationality: player.nationality || "",
-            photo: player.photo || "",
-            club: stat.team.name || "",
-            clubLogo: stat.team.logo || "",
-            league: stat.league?.name || "Premier League",
-            leagueId: stat.league?.id || 39,
-            position,
-            price: priceMap[position] || 5.0,
-            stats: newStats,
-            $inc: { totalPoints: gwPoints },
-          },
-          { upsert: true, new: true }
-        );
-
-        // Save snapshot for this gameweek
-        if (gwPoints !== 0 || !existing) {
-          await PlayerSnapshot.findOneAndUpdate(
-            { playerId: updatedPlayer._id, gameweek: currentGw.number },
-            {
-              playerId: updatedPlayer._id,
-              gameweek: currentGw.number,
-              stats: newStats,
-              gameweekPoints: gwPoints,
-            },
-            { upsert: true }
-          );
-          pointsUpdated++;
-        }
-
-        totalSynced++;
-      }
-
-      const paging = data.paging;
-      hasMore = paging && page < paging.total;
-      page++;
-    }
-
-    // Update fantasy team scores for this gameweek
-    const teams = await FantasyTeam.find().populate("players.playerId");
-    for (const team of teams) {
-      let gwTotal = 0;
-      for (const slot of team.players) {
-        const snapshot = await PlayerSnapshot.findOne({
-          playerId: slot.playerId._id || slot.playerId,
-          gameweek: currentGw.number,
-        });
-        if (snapshot) {
-          let pts = snapshot.gameweekPoints;
-          if (slot.isCaptain) pts *= 2;
-          gwTotal += pts;
-        }
-      }
-      team.gameweekPoints = gwTotal;
-      team.totalPoints = (team.totalPoints || 0) + gwTotal;
-      await team.save();
-    }
+    await SyncLog.create({
+      type: "player-sync",
+      leagueId: Number(league),
+      leagueName,
+      trigger: "manual",
+      status: "success",
+      totalSynced: result.totalSynced,
+      pointsUpdated: result.pointsUpdated,
+      gameweek: result.gameweek,
+    });
 
     res.json({
-      message: `Synced ${totalSynced} players, ${pointsUpdated} scored points`,
-      totalSynced,
-      pointsUpdated,
-      gameweek: currentGw.number,
-      teamsUpdated: teams.length,
+      message: `Synced ${result.totalSynced} players, ${result.pointsUpdated} scored points`,
+      totalSynced: result.totalSynced,
+      pointsUpdated: result.pointsUpdated,
+      gameweek: result.gameweek,
+      teamsUpdated,
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to sync players: " + err.message });
   }
 };
 
-// Advance to next gameweek (call after each sync)
+// Advance to next gameweek (manual trigger)
 exports.advanceGameweek = async (req, res) => {
   try {
-    await Gameweek.updateMany({}, { isCurrent: false, isActive: false });
-    const lastGw = await Gameweek.findOne().sort({ number: -1 });
-    const gwNumber = lastGw ? lastGw.number + 1 : 1;
-    const gw = await Gameweek.create({
-      number: gwNumber,
-      label: `Gameweek ${gwNumber}`,
-      startDate: new Date(),
-      isCurrent: true,
-      isActive: true,
+    const gw = await advanceToNextGameweek();
+
+    await SyncLog.create({
+      type: "gameweek-advance",
+      trigger: "manual",
+      status: "success",
+      gameweek: gw.number,
     });
+
     res.json({ gameweek: gw });
   } catch (err) {
     res.status(500).json({ error: "Failed to advance gameweek" });
@@ -236,6 +122,17 @@ exports.getGameweeks = async (req, res) => {
     res.json({ gameweeks });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch gameweeks" });
+  }
+};
+
+// Get sync logs (for admin panel)
+exports.getSyncLogs = async (req, res) => {
+  try {
+    const { limit = 20 } = req.query;
+    const logs = await SyncLog.find().sort({ createdAt: -1 }).limit(Number(limit));
+    res.json({ logs });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch sync logs" });
   }
 };
 
