@@ -1,33 +1,20 @@
 const mongoose = require("mongoose");
 
-const NewsSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
+const NewsSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true },
+    shortDesc: { type: String, required: true },
+    description: { type: String, required: true },
+    image: { type: String, default: "" },
+    url: { type: String, default: "" },
+    isHeadline: { type: Boolean, default: false },
+    category: {
+      type: String,
+      enum: ["transfer", "match", "injury", "general"],
+      default: "general",
+    },
   },
-  isHeadline: {
-    type: Boolean,
-    required: false,
-    default: false,
-  },
-  short_desc: {
-    type: String,
-    required: true,
-  },
-  description: {
-    type: String,
-    required: true,
-  },
-  image: {
-    type: String,
-  },
-  url: {
-    type: String,
-  },
-  video: {
-    type: String,
-  },
-});
+  { timestamps: true }
+);
 
-let collectionname = "news";
-module.exports = mongoose.model(collectionname, NewsSchema);
+module.exports = mongoose.model("News", NewsSchema);
