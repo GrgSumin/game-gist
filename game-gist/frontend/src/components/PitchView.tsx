@@ -5,9 +5,23 @@ import type { TeamPlayer } from "../atoms/team";
 interface Props {
   grouped: Record<Position, (TeamPlayer | null)[]>;
   onSlotClick?: (position: Position, index: number) => void;
+  mode?: "edit" | "points";
+  playerPoints?: Record<string, number>;
 }
 
-function PlayerSlot({ player, position, onClick }: { player: TeamPlayer | null; position: Position; onClick?: () => void }) {
+function PlayerSlot({
+  player,
+  position,
+  onClick,
+  mode = "edit",
+  points,
+}: {
+  player: TeamPlayer | null;
+  position: Position;
+  onClick?: () => void;
+  mode?: "edit" | "points";
+  points?: number;
+}) {
   return (
     <Box
       onClick={onClick}
@@ -19,8 +33,29 @@ function PlayerSlot({ player, position, onClick }: { player: TeamPlayer | null; 
         "&:hover": onClick ? { opacity: 0.8 } : {},
       }}
     >
+      {/* Captain / VC badge */}
+      {player && (player.isCaptain || player.isViceCaptain) && (
+        <Box
+          sx={{
+            bgcolor: player.isCaptain ? "#4A90D9" : "#888",
+            color: "#fff",
+            width: 18,
+            height: 18,
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "0.55rem",
+            fontWeight: 800,
+            mb: -0.5,
+            zIndex: 1,
+          }}
+        >
+          {player.isCaptain ? "C" : "V"}
+        </Box>
+      )}
       <Avatar
-        src={player?.photo}
+        src={player?.clubLogo || player?.photo}
         sx={{
           width: { xs: 42, md: 52 },
           height: { xs: 42, md: 52 },
@@ -34,33 +69,63 @@ function PlayerSlot({ player, position, onClick }: { player: TeamPlayer | null; 
       >
         {player ? player.name.split(" ").pop()?.[0] : "+"}
       </Avatar>
-      <Typography
-        variant="caption"
+      {/* Name label */}
+      <Box
         sx={{
-          fontWeight: 600,
-          fontSize: { xs: "0.6rem", md: "0.7rem" },
-          color: player ? "#fff" : "#888",
-          textAlign: "center",
-          maxWidth: 76,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-          textShadow: "0 1px 3px rgba(0,0,0,0.8)",
+          bgcolor: player ? "rgba(55,0,60,0.9)" : "transparent",
+          borderRadius: 0.5,
+          px: 0.8,
+          py: 0.2,
         }}
       >
-        {player ? player.name.split(" ").pop() : position}
-      </Typography>
-      {player && (
-        <Typography variant="caption" sx={{ color: "#ccc", fontSize: "0.6rem", fontWeight: 600, textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>
-          {player.price.toFixed(1)}m
-          {player.isCaptain && " (C)"}
+        <Typography
+          variant="caption"
+          sx={{
+            fontWeight: 600,
+            fontSize: { xs: "0.6rem", md: "0.7rem" },
+            color: player ? "#fff" : "#888",
+            textAlign: "center",
+            maxWidth: 80,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            display: "block",
+          }}
+        >
+          {player ? player.name.split(" ").pop() : position}
         </Typography>
+      </Box>
+      {/* Points or Price */}
+      {player && (
+        <Box
+          sx={{
+            bgcolor: mode === "points" ? "#37003C" : "transparent",
+            borderRadius: 0.5,
+            px: 1,
+            py: 0.1,
+            mt: 0.3,
+            minWidth: 28,
+            textAlign: "center",
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{
+              color: "#fff",
+              fontSize: "0.65rem",
+              fontWeight: 700,
+              textShadow: mode === "edit" ? "0 1px 3px rgba(0,0,0,0.8)" : "none",
+            }}
+          >
+            {mode === "points" ? (points ?? 0) : `${player.price.toFixed(1)}m`}
+          </Typography>
+        </Box>
       )}
     </Box>
   );
 }
 
-export default function PitchView({ grouped, onSlotClick }: Props) {
+export default function PitchView({ grouped, onSlotClick, mode = "edit", playerPoints = {} }: Props) {
   const rows: Position[] = ["FWD", "MID", "DEF", "GK"];
 
   return (
@@ -96,6 +161,8 @@ export default function PitchView({ grouped, onSlotClick }: Props) {
               player={player}
               position={pos}
               onClick={onSlotClick ? () => onSlotClick(pos, idx) : undefined}
+              mode={mode}
+              points={player?._id ? playerPoints[player._id] : undefined}
             />
           ))}
         </Box>

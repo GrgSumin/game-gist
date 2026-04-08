@@ -25,10 +25,10 @@ export default function PlayersPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params: Record<string, unknown> = { page, limit: 30 };
+      const params: { page: number; limit: number; position?: string; search?: string } = { page, limit: 30 };
       if (position) params.position = position;
       if (search) params.search = search;
-      const { data } = await getPlayers(params as { position?: string; search?: string; page?: number });
+      const { data } = await getPlayers(params);
       setPlayers(data.players);
       setTotalPages(data.pagination.pages);
     } catch {

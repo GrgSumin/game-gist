@@ -6,7 +6,7 @@ import {
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import { myTeamState, teamByPosition, teamCount, remainingBudget, formationState, teamNameState, type TeamPlayer } from "../atoms/team";
-import { getPlayers, saveFantasyTeam } from "../api/endpoints";
+import { getPlayers, saveFantasyTeam, getMyTeam } from "../api/endpoints";
 import type { Player, Position } from "../types";
 import PitchView from "../components/PitchView";
 import PlayerCard from "../components/PlayerCard";
@@ -32,10 +32,10 @@ export default function TeamSelection() {
 
   const loadPlayers = useCallback(async () => {
     try {
-      const params: Record<string, unknown> = { limit: 100 };
+      const params: { limit: number; position?: string; search?: string } = { limit: 0 };
       if (posFilter) params.position = posFilter;
       if (search) params.search = search;
-      const { data } = await getPlayers(params as { position?: string; search?: string });
+      const { data } = await getPlayers(params);
       setPlayers(data.players);
     } catch {
       setPlayers([]);
@@ -46,10 +46,37 @@ export default function TeamSelection() {
     loadPlayers();
   }, [loadPlayers]);
 
+  // Load saved team on mount
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    getMyTeam()
+      .then(({ data }) => {
+        if (data.team && data.team.players.length > 0) {
+          const loaded: TeamPlayer[] = data.team.players
+            .filter((s) => s.playerId && typeof s.playerId === "object")
+            .map((s) => ({
+              ...(s.playerId as unknown as Player),
+              isCaptain: s.isCaptain,
+              isViceCaptain: s.isViceCaptain,
+            }));
+          if (loaded.length > 0) {
+            setTeam(loaded);
+            setTeamName(data.team.name);
+            setFormation(data.team.formation);
+          }
+        }
+      })
+      .catch(() => {});
+  }, [isAuthenticated, setTeam, setTeamName, setFormation]);
+
   const addPlayer = (player: Player) => {
     if (count >= 11) return setSnack("Team is full (11 players)");
     if (team.some((p) => p._id === player._id)) return setSnack("Player already in team");
     if (budget < player.price) return setSnack("Not enough budget");
+
+    // Max 3 players per club (FPL rule)
+    const clubCount = team.filter((p) => p.club === player.club).length;
+    if (clubCount >= 3) return setSnack(`Max 3 players per club (${player.club})`);
 
     const [d, m, f] = formation.split("-").map(Number);
     const slots: Record<Position, number> = { GK: 1, DEF: d, MID: m, FWD: f };

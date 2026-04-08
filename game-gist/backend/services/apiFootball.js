@@ -4,12 +4,66 @@ const ApiCache = require("../model/ApiCache");
 const BASE_URL = "https://v3.football.api-sports.io";
 
 const LEAGUES = {
-  EPL: 39,
-  UCL: 2,
-  BUNDESLIGA: 78,
+  EPL: 39,           // Premier League (England)
+  LA_LIGA: 140,      // La Liga (Spain)
+  SERIE_A: 135,      // Serie A (Italy)
+  BUNDESLIGA: 78,    // Bundesliga (Germany)
+  LIGUE_1: 61,       // Ligue 1 (France)
+  UCL: 2,            // UEFA Champions League
 };
 
-const CURRENT_SEASON = 2024;
+// Dynamic season detection — resolved at startup, re-checked daily
+let activeSeason = null;
+
+async function detectSeason() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1; // 1-12
+  // Football seasons run Jul–Jun. If month >= 7, new season = this year. Otherwise, last year.
+  const expected = month >= 7 ? year : year - 1;
+
+  const apiKey = process.env.API_FOOTBALL_KEY;
+  if (!apiKey) {
+    console.log(`[Season] No API key, defaulting to season ${expected}`);
+    activeSeason = expected;
+    return activeSeason;
+  }
+
+  try {
+    // Check if the expected season has fixture data (use EPL as reference)
+    const response = await axios.get(`${BASE_URL}/fixtures`, {
+      headers: { "x-apisports-key": apiKey },
+      params: { league: 39, season: expected },
+    });
+
+    const count = response.data?.results || 0;
+    if (count > 0) {
+      activeSeason = expected;
+      console.log(`[Season] Using season ${activeSeason} (${count} EPL fixtures found)`);
+    } else {
+      // No data for expected season yet — fall back to previous year
+      activeSeason = expected - 1;
+      console.log(`[Season] Season ${expected} has no data yet, falling back to ${activeSeason}`);
+    }
+  } catch (err) {
+    // On error, fall back gracefully
+    activeSeason = activeSeason || expected - 1;
+    console.error(`[Season] Detection failed: ${err.message}, using ${activeSeason}`);
+  }
+
+  return activeSeason;
+}
+
+function getSeason() {
+  // If detectSeason hasn't run yet, calculate a sensible default
+  if (activeSeason === null) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    return month >= 7 ? year : year - 1;
+  }
+  return activeSeason;
+}
 
 async function cachedApiCall(endpoint, params = {}) {
   const cacheKey = `${endpoint}?${new URLSearchParams(params).toString()}`;
@@ -51,7 +105,7 @@ async function fetchLeagues() {
   return results;
 }
 
-async function fetchFixtures(leagueId, season = CURRENT_SEASON) {
+async function fetchFixtures(leagueId, season = getSeason()) {
   const data = await cachedApiCall("/fixtures", { league: leagueId, season });
   return data.response || [];
 }
@@ -69,7 +123,7 @@ async function fetchFixturesByDate(date) {
 // Fetch recent + upcoming fixtures for a league using the full season data
 // Then filter to get the most recent finished and next upcoming
 async function fetchLeagueRecentAndUpcoming(leagueId, recentCount = 10, upcomingCount = 10) {
-  const allFixtures = await fetchFixtures(leagueId, CURRENT_SEASON);
+  const allFixtures = await fetchFixtures(leagueId, getSeason());
   const today = new Date();
 
   const finished = allFixtures
@@ -96,7 +150,7 @@ async function fetchTodayFixtures() {
   return allToday.filter((f) => leagueIds.includes(f.league.id));
 }
 
-async function fetchPlayers(leagueId, season = CURRENT_SEASON, page = 1) {
+async function fetchPlayers(leagueId, season = getSeason(), page = 1) {
   const data = await cachedApiCall("/players", {
     league: leagueId,
     season,
@@ -105,7 +159,7 @@ async function fetchPlayers(leagueId, season = CURRENT_SEASON, page = 1) {
   return data;
 }
 
-async function fetchStandings(leagueId, season = CURRENT_SEASON) {
+async function fetchStandings(leagueId, season = getSeason()) {
   const data = await cachedApiCall("/standings", {
     league: leagueId,
     season,
@@ -116,7 +170,7 @@ async function fetchStandings(leagueId, season = CURRENT_SEASON) {
   return [];
 }
 
-async function fetchTopScorers(leagueId, season = CURRENT_SEASON) {
+async function fetchTopScorers(leagueId, season = getSeason()) {
   const data = await cachedApiCall("/players/topscorers", {
     league: leagueId,
     season,
@@ -124,7 +178,7 @@ async function fetchTopScorers(leagueId, season = CURRENT_SEASON) {
   return data.response || [];
 }
 
-async function fetchTopAssists(leagueId, season = CURRENT_SEASON) {
+async function fetchTopAssists(leagueId, season = getSeason()) {
   const data = await cachedApiCall("/players/topassists", {
     league: leagueId,
     season,
@@ -159,7 +213,8 @@ function calculateFantasyPoints(stats, position) {
 
 module.exports = {
   LEAGUES,
-  CURRENT_SEASON,
+  detectSeason,
+  getSeason,
   cachedApiCall,
   fetchLeagues,
   fetchFixtures,

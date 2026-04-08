@@ -11,6 +11,7 @@ import Leaderboard from "./pages/Leaderboard";
 import News from "./pages/News";
 import NewsDetail from "./pages/NewsDetail";
 import Groups from "./pages/Groups";
+import MyTeam from "./pages/MyTeam";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/my-team" element={<MyTeam />} />
         <Route path="/team" element={<TeamSelection />} />
         <Route path="/fixtures" element={<Fixtures />} />
         <Route path="/players" element={<Players />} />

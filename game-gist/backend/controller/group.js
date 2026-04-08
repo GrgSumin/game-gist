@@ -76,6 +76,38 @@ exports.getGroupMembers = async (req, res) => {
   }
 };
 
+// Group leaderboard - shows member rankings by fantasy points
+exports.getGroupLeaderboard = async (req, res) => {
+  try {
+    const FantasyTeam = require("../model/FantasyTeam");
+    const group = await Group.findOne({ groupCode: req.params.groupCode })
+      .populate("members.userId", "username avatar");
+
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    const memberIds = group.members.map((m) => m.userId?._id || m.userId);
+    const teams = await FantasyTeam.find({ userId: { $in: memberIds } })
+      .populate("userId", "username avatar");
+
+    const leaderboard = teams
+      .map((team) => ({
+        username: team.userId?.username || "Unknown",
+        avatar: team.userId?.avatar || "",
+        teamName: team.name,
+        totalPoints: team.totalPoints || 0,
+        gameweekPoints: team.gameweekPoints || 0,
+      }))
+      .sort((a, b) => b.totalPoints - a.totalPoints)
+      .map((entry, i) => ({ ...entry, rank: i + 1 }));
+
+    res.json({ groupName: group.groupName, groupCode: group.groupCode, leaderboard });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch group leaderboard" });
+  }
+};
+
 exports.getUserGroups = async (req, res) => {
   try {
     const userId = req.user.id;

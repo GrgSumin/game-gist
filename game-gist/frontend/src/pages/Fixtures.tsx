@@ -7,8 +7,11 @@ import type { Fixture } from "../types";
 
 const LEAGUES = [
   { id: 39, name: "Premier League" },
-  { id: 2, name: "Champions League" },
+  { id: 140, name: "La Liga" },
+  { id: 135, name: "Serie A" },
   { id: 78, name: "Bundesliga" },
+  { id: 61, name: "Ligue 1" },
+  { id: 2, name: "Champions League" },
 ];
 
 export default function FixturesPage() {

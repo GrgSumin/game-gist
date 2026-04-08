@@ -15,8 +15,8 @@ export const getProfile = () =>
 export const getLeagues = () =>
   api.get<{ leagues: unknown[] }>("/api/football/leagues");
 
-export const getFixtures = (league = 39, season = 2024) =>
-  api.get<{ fixtures: Fixture[] }>(`/api/football/fixtures?league=${league}&season=${season}`);
+export const getFixtures = (league = 39, season?: number) =>
+  api.get<{ fixtures: Fixture[] }>(`/api/football/fixtures?league=${league}${season ? `&season=${season}` : ""}`);
 
 export const getDashboardFixtures = () =>
   api.get<{ recent: Fixture[]; upcoming: Fixture[]; live: Fixture[] }>("/api/football/fixtures/dashboard");
@@ -24,8 +24,8 @@ export const getDashboardFixtures = () =>
 export const getFixturesByLeague = (league: number) =>
   api.get<{ recent: Fixture[]; upcoming: Fixture[]; live: Fixture[] }>(`/api/football/fixtures/browse?league=${league}`);
 
-export const getStandings = (league = 39, season = 2024) =>
-  api.get<{ standings: StandingRow[][] }>(`/api/football/standings?league=${league}&season=${season}`);
+export const getStandings = (league = 39, season?: number) =>
+  api.get<{ standings: StandingRow[][] }>(`/api/football/standings?league=${league}${season ? `&season=${season}` : ""}`);
 
 export const getTopScorers = (league = 39) =>
   api.get(`/api/football/top-scorers?league=${league}`);
@@ -33,7 +33,7 @@ export const getTopScorers = (league = 39) =>
 export const getTopAssists = (league = 39) =>
   api.get(`/api/football/top-assists?league=${league}`);
 
-export const getPlayers = (params?: { league?: number; position?: string; search?: string; page?: number }) =>
+export const getPlayers = (params?: { league?: number; position?: string; search?: string; page?: number; limit?: number }) =>
   api.get<{ players: Player[]; pagination: { page: number; total: number; pages: number } }>("/api/football/players", { params });
 
 export const getPlayerById = (id: string) =>
@@ -47,7 +47,7 @@ export const getMyTeam = () =>
   api.get<{ team: FantasyTeam | null }>("/api/fantasy/team");
 
 export const getFantasyScore = () =>
-  api.get<{ totalPoints: number; playerScores: unknown[] }>("/api/fantasy/score");
+  api.get<{ totalPoints: number; gameweekPoints: number; gameweek: number; playerScores: unknown[] }>("/api/fantasy/score");
 
 export const getLeaderboard = () =>
   api.get<{ leaderboard: LeaderboardEntry[] }>("/api/fantasy/leaderboard");
@@ -64,6 +64,9 @@ export const getMyGroups = () =>
 
 export const getGroupMembers = (groupCode: string) =>
   api.get<{ group: Group }>(`/api/groups/${groupCode}/members`);
+
+export const getGroupLeaderboard = (groupCode: string) =>
+  api.get<{ groupName: string; groupCode: string; leaderboard: LeaderboardEntry[] }>(`/api/groups/${groupCode}/leaderboard`);
 
 // News
 export const getNews = (page = 1, source?: string) =>

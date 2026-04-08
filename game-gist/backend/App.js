@@ -55,9 +55,12 @@ app.use((err, req, res, next) => {
 const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/game-gist";
 mongoose
   .connect(mongoUri)
-  .then(() => {
+  .then(async () => {
     console.log("Connected to MongoDB");
-    // Start cron jobs after DB is connected
+    // Detect active season before starting anything else
+    const { detectSeason } = require("./services/apiFootball");
+    await detectSeason();
+    // Start cron jobs after DB is connected and season is resolved
     const { startCronJobs } = require("./services/cron");
     startCronJobs();
   })

@@ -2,7 +2,7 @@ const {
   fetchPlayers,
   mapApiPosition,
   calculateFantasyPoints,
-  CURRENT_SEASON,
+  getSeason,
 } = require("./apiFootball");
 const FootballPlayer = require("../model/FootballPlayer");
 const PlayerSnapshot = require("../model/PlayerSnapshot");
@@ -12,12 +12,15 @@ const SyncLog = require("../model/SyncLog");
 
 const LEAGUES = [
   { id: 39, name: "Premier League" },
-  { id: 2, name: "Champions League" },
+  { id: 140, name: "La Liga" },
+  { id: 135, name: "Serie A" },
   { id: 78, name: "Bundesliga" },
+  { id: 61, name: "Ligue 1" },
+  { id: 2, name: "Champions League" },
 ];
 
 // Core sync logic - works for both manual and auto triggers
-async function syncLeague(leagueId, season = CURRENT_SEASON) {
+async function syncLeague(leagueId, season = getSeason()) {
   // Get or create current gameweek
   let currentGw = await Gameweek.findOne({ isCurrent: true });
   if (!currentGw) {

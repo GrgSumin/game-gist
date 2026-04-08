@@ -1,14 +1,5 @@
-const {
-  fetchLeagues,
-  fetchFixtures,
-  fetchLeagueRecentAndUpcoming,
-  fetchTodayFixtures,
-  fetchStandings,
-  fetchTopScorers,
-  fetchTopAssists,
-  LEAGUES,
-  CURRENT_SEASON,
-} = require("../services/apiFootball");
+const { LEAGUES, getSeason } = require("../services/apiFootball");
+const fdo = require("../services/footballDataOrg");
 const FootballPlayer = require("../model/FootballPlayer");
 const PlayerSnapshot = require("../model/PlayerSnapshot");
 const Gameweek = require("../model/Gameweek");
@@ -21,7 +12,9 @@ const {
 
 exports.getLeagues = async (req, res) => {
   try {
-    const leagues = await fetchLeagues();
+    const leagues = Object.values(fdo.COMPETITIONS).map((c) => ({
+      league: { id: c.id, name: c.name },
+    }));
     res.json({ leagues });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch leagues" });
@@ -30,9 +23,9 @@ exports.getLeagues = async (req, res) => {
 
 exports.getFixtures = async (req, res) => {
   try {
-    const { league = 39, season = CURRENT_SEASON } = req.query;
-    const fixtures = await fetchFixtures(Number(league), Number(season));
-    res.json({ fixtures });
+    const { league = 39 } = req.query;
+    const result = await fdo.fetchRecentAndUpcoming(Number(league));
+    res.json({ fixtures: [...result.live, ...result.upcoming, ...result.recent] });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch fixtures" });
   }
@@ -43,10 +36,10 @@ exports.getDashboardFixtures = async (req, res) => {
   try {
     const leagueIds = Object.values(LEAGUES);
 
-    // Fetch all 3 leagues in parallel + today's cross-league fixtures
+    // Fetch all leagues in parallel + today's cross-league fixtures
     const [todayAll, ...leagueResults] = await Promise.all([
-      fetchTodayFixtures(),
-      ...leagueIds.map((id) => fetchLeagueRecentAndUpcoming(id, 5, 5)),
+      fdo.fetchTodayMatches(),
+      ...leagueIds.map((id) => fdo.fetchRecentAndUpcoming(id, 5, 5)),
     ]);
 
     const recent = [];
@@ -82,7 +75,7 @@ exports.getDashboardFixtures = async (req, res) => {
 exports.getLeagueFixtures = async (req, res) => {
   try {
     const { league = 39 } = req.query;
-    const result = await fetchLeagueRecentAndUpcoming(Number(league), 15, 15);
+    const result = await fdo.fetchRecentAndUpcoming(Number(league), 15, 15);
 
     res.json({
       recent: result.recent,
@@ -96,8 +89,8 @@ exports.getLeagueFixtures = async (req, res) => {
 
 exports.getStandings = async (req, res) => {
   try {
-    const { league = 39, season = CURRENT_SEASON } = req.query;
-    const standings = await fetchStandings(Number(league), Number(season));
+    const { league = 39 } = req.query;
+    const standings = await fdo.fetchStandings(Number(league));
     res.json({ standings });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch standings" });
@@ -106,8 +99,8 @@ exports.getStandings = async (req, res) => {
 
 exports.getTopScorers = async (req, res) => {
   try {
-    const { league = 39, season = CURRENT_SEASON } = req.query;
-    const scorers = await fetchTopScorers(Number(league), Number(season));
+    const { league = 39 } = req.query;
+    const scorers = await fdo.fetchScorers(Number(league));
     res.json({ scorers });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch top scorers" });
@@ -116,40 +109,42 @@ exports.getTopScorers = async (req, res) => {
 
 exports.getTopAssists = async (req, res) => {
   try {
-    const { league = 39, season = CURRENT_SEASON } = req.query;
-    const assists = await fetchTopAssists(Number(league), Number(season));
+    const { league = 39 } = req.query;
+    const scorers = await fdo.fetchScorers(Number(league));
+    // Filter to those with assists
+    const assists = scorers.filter((s) => s.statistics?.[0]?.goals?.assists > 0);
     res.json({ assists });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch top assists" });
   }
 };
 
-// Sync players (manual trigger from admin)
+// Sync players from football-data.org (manual trigger from admin)
 exports.syncPlayers = async (req, res) => {
   try {
-    const { league = 39, season = CURRENT_SEASON } = req.query;
-    const leagueName = { 39: "Premier League", 2: "Champions League", 78: "Bundesliga" }[league] || "Unknown";
+    const { clear } = req.query;
 
-    const result = await syncLeague(Number(league), Number(season));
-    const teamsUpdated = await updateTeamScores(result.gameweek);
+    // If clear=true, wipe old player data first
+    if (clear === "true") {
+      await FootballPlayer.deleteMany({});
+      await PlayerSnapshot.deleteMany({});
+      console.log("[Sync] Cleared all old player data");
+    }
+
+    const result = await fdo.syncEPLPlayers();
 
     await SyncLog.create({
       type: "player-sync",
-      leagueId: Number(league),
-      leagueName,
+      leagueId: 39,
+      leagueName: "Premier League",
       trigger: "manual",
       status: "success",
       totalSynced: result.totalSynced,
-      pointsUpdated: result.pointsUpdated,
-      gameweek: result.gameweek,
     });
 
     res.json({
-      message: `Synced ${result.totalSynced} players, ${result.pointsUpdated} scored points`,
+      message: `Synced ${result.totalSynced} EPL players from football-data.org`,
       totalSynced: result.totalSynced,
-      pointsUpdated: result.pointsUpdated,
-      gameweek: result.gameweek,
-      teamsUpdated,
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to sync players: " + err.message });
@@ -217,12 +212,17 @@ exports.getPlayers = async (req, res) => {
     if (club) filter.club = new RegExp(club, "i");
     if (search) filter.name = new RegExp(search, "i");
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const lim = Number(limit);
+    const noLimit = lim === 0;
+    const skip = noLimit ? 0 : (Number(page) - 1) * lim;
+
+    let query = FootballPlayer.find(filter)
+      .sort({ club: 1, name: 1 })
+      .skip(skip);
+    if (!noLimit) query = query.limit(lim);
+
     const [players, total] = await Promise.all([
-      FootballPlayer.find(filter)
-        .sort({ totalPoints: -1 })
-        .skip(skip)
-        .limit(Number(limit)),
+      query,
       FootballPlayer.countDocuments(filter),
     ]);
 
@@ -230,9 +230,9 @@ exports.getPlayers = async (req, res) => {
       players,
       pagination: {
         page: Number(page),
-        limit: Number(limit),
+        limit: noLimit ? total : lim,
         total,
-        pages: Math.ceil(total / Number(limit)),
+        pages: noLimit ? 1 : Math.ceil(total / lim),
       },
     });
   } catch (err) {

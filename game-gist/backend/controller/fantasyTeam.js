@@ -31,6 +31,15 @@ exports.saveTeam = async (req, res) => {
         .json({ error: `Budget exceeded: ${totalCost.toFixed(1)}/100.0` });
     }
 
+    // Max 3 players per club (like FPL)
+    const clubCounts = {};
+    for (const p of dbPlayers) {
+      clubCounts[p.club] = (clubCounts[p.club] || 0) + 1;
+      if (clubCounts[p.club] > 3) {
+        return res.status(400).json({ error: `Max 3 players per club. Too many from ${p.club}` });
+      }
+    }
+
     const captainCount = players.filter((p) => p.isCaptain).length;
     if (captainCount !== 1) {
       return res.status(400).json({ error: "Must have exactly 1 captain" });
@@ -87,36 +96,54 @@ exports.calculateScore = async (req, res) => {
       return res.status(404).json({ error: "No team found" });
     }
 
-    let totalPoints = 0;
+    const PlayerSnapshot = require("../model/PlayerSnapshot");
+    const Gameweek = require("../model/Gameweek");
+    const currentGw = await Gameweek.findOne({ isCurrent: true });
+
     const playerScores = [];
 
     for (const slot of team.players) {
       const player = slot.playerId;
       if (!player) continue;
 
-      let points = calculateFantasyPoints(player.stats, player.position);
-      if (slot.isCaptain) points *= 2;
+      // Get gameweek-specific points from snapshot (set by sync)
+      let gwPoints = 0;
+      if (currentGw) {
+        const snapshot = await PlayerSnapshot.findOne({
+          playerId: player._id,
+          gameweek: currentGw.number,
+        });
+        if (snapshot) gwPoints = snapshot.gameweekPoints || 0;
+      }
+
+      // Captain gets 2x gameweek points
+      if (slot.isCaptain) gwPoints *= 2;
+
+      // Total points = player's accumulated total (from all gameweeks)
+      let totalPts = player.totalPoints || 0;
+      if (slot.isCaptain) totalPts *= 2;
 
       playerScores.push({
         playerId: player._id,
         name: player.name,
         position: player.position,
         club: player.club,
+        clubLogo: player.clubLogo,
         photo: player.photo,
-        points,
+        points: totalPts,
+        gameweekPoints: gwPoints,
         isCaptain: slot.isCaptain,
         isViceCaptain: slot.isViceCaptain,
         stats: player.stats,
       });
-
-      totalPoints += points;
     }
 
-    team.totalPoints = totalPoints;
-    team.gameweekPoints = totalPoints;
-    await team.save();
-
-    res.json({ totalPoints, playerScores });
+    res.json({
+      totalPoints: team.totalPoints,
+      gameweekPoints: team.gameweekPoints,
+      gameweek: currentGw?.number || 0,
+      playerScores,
+    });
   } catch (err) {
     res.status(500).json({ error: "Failed to calculate score" });
   }
