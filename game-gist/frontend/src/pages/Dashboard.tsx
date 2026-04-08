@@ -5,21 +5,25 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Skeleton,
 } from "@mui/material";
-import { getFixtures, getStandings, getLeaderboard } from "../api/endpoints";
+import { getDashboardFixtures, getStandings, getLeaderboard } from "../api/endpoints";
 import type { Fixture, StandingRow, LeaderboardEntry } from "../types";
 import useAuth from "../hooks/useAuth";
 
 export default function Dashboard() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [fixtures, setFixtures] = useState<Fixture[]>([]);
+  const [recent, setRecent] = useState<Fixture[]>([]);
+  const [upcoming, setUpcoming] = useState<Fixture[]>([]);
   const [standings, setStandings] = useState<StandingRow[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.allSettled([
-      getFixtures(39).then((r) => setFixtures(r.data.fixtures.slice(0, 6))),
+      getDashboardFixtures(5, 5).then((r) => {
+        setRecent(r.data.recent);
+        setUpcoming(r.data.upcoming);
+      }),
       getStandings(39).then((r) => {
         const rows = r.data.standings;
         if (rows && rows.length > 0) setStandings(rows[0].slice(0, 10));
@@ -28,10 +32,58 @@ export default function Dashboard() {
     ]).finally(() => setLoading(false));
   }, []);
 
-  const liveFixtures = fixtures.filter((f) => ["LIVE", "1H", "2H", "HT"].includes(f.fixture.status.short));
-  const upcomingFixtures = fixtures.filter((f) => f.fixture.status.short === "NS");
-  const recentFixtures = fixtures.filter((f) => f.fixture.status.short === "FT");
-  const displayFixtures = [...liveFixtures, ...upcomingFixtures, ...recentFixtures].slice(0, 6);
+  const isToday = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const now = new Date();
+    return d.toDateString() === now.toDateString();
+  };
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    if (isToday(dateStr)) return "Today";
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+    return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  };
+
+  const formatTime = (dateStr: string) =>
+    new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  const displayFixtures = [...upcoming.slice(0, 4), ...recent.slice(0, 4)];
+
+  const FixtureRow = ({ f }: { f: Fixture }) => (
+    <Box sx={{ display: "flex", alignItems: "center", py: 1.5, borderBottom: "1px solid #2A2A2A", "&:last-child": { borderBottom: 0 } }}>
+      <Avatar src={f.league.logo} sx={{ width: 18, height: 18, mr: 1.5 }} />
+      <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1 }}>
+        <Typography variant="body2" fontWeight={600} textAlign="right">{f.teams.home.name}</Typography>
+        <Avatar src={f.teams.home.logo} sx={{ width: 24, height: 24 }} />
+      </Box>
+      <Box sx={{ px: 2, minWidth: 80, textAlign: "center" }}>
+        {f.fixture.status.short === "NS" ? (
+          <Box>
+            <Typography variant="caption" color="text.secondary">{formatDate(f.fixture.date)}</Typography>
+            <Typography variant="body2" fontWeight={600}>{formatTime(f.fixture.date)}</Typography>
+          </Box>
+        ) : (
+          <Box>
+            <Typography variant="body2" fontWeight={700}>
+              {f.goals.home ?? 0} - {f.goals.away ?? 0}
+            </Typography>
+            {["LIVE", "1H", "2H", "HT"].includes(f.fixture.status.short) ? (
+              <Chip label="LIVE" size="small" color="error" sx={{ height: 16, fontSize: "0.6rem" }} />
+            ) : (
+              <Typography variant="caption" color="text.secondary">{formatDate(f.fixture.date)}</Typography>
+            )}
+          </Box>
+        )}
+      </Box>
+      <Box sx={{ flex: 1, display: "flex", alignItems: "center", gap: 1 }}>
+        <Avatar src={f.teams.away.logo} sx={{ width: 24, height: 24 }} />
+        <Typography variant="body2" fontWeight={600}>{f.teams.away.name}</Typography>
+      </Box>
+    </Box>
+  );
 
   return (
     <Box sx={{ maxWidth: 1400, mx: "auto", px: { xs: 2, md: 3 }, py: 3 }}>
@@ -52,38 +104,16 @@ export default function Dashboard() {
         <Grid item xs={12} md={8}>
           <Card sx={{ mb: 3 }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>Fixtures</Typography>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                <Typography variant="h6">Matches</Typography>
+                <Chip label="View All" size="small" variant="outlined" clickable onClick={() => navigate("/fixtures")} />
+              </Box>
               {loading ? (
-                Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={50} sx={{ mb: 1 }} />)
+                Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} height={50} sx={{ mb: 1 }} />)
               ) : displayFixtures.length === 0 ? (
                 <Typography color="text.secondary" variant="body2">No fixtures available. Connect your API key to see live data.</Typography>
               ) : (
-                displayFixtures.map((f) => (
-                  <Box key={f.fixture.id} sx={{ display: "flex", alignItems: "center", py: 1.5, borderBottom: "1px solid #2A2A2A", "&:last-child": { borderBottom: 0 } }}>
-                    <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1 }}>
-                      <Typography variant="body2" fontWeight={600} textAlign="right">{f.teams.home.name}</Typography>
-                      <Avatar src={f.teams.home.logo} sx={{ width: 24, height: 24 }} />
-                    </Box>
-                    <Box sx={{ px: 2, minWidth: 70, textAlign: "center" }}>
-                      {f.fixture.status.short === "NS" ? (
-                        <Typography variant="caption" color="text.secondary">
-                          {new Date(f.fixture.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </Typography>
-                      ) : (
-                        <Typography variant="body2" fontWeight={700}>
-                          {f.goals.home ?? 0} - {f.goals.away ?? 0}
-                        </Typography>
-                      )}
-                      {!["NS", "FT"].includes(f.fixture.status.short) && (
-                        <Chip label="LIVE" size="small" color="error" sx={{ height: 16, fontSize: "0.6rem" }} />
-                      )}
-                    </Box>
-                    <Box sx={{ flex: 1, display: "flex", alignItems: "center", gap: 1 }}>
-                      <Avatar src={f.teams.away.logo} sx={{ width: 24, height: 24 }} />
-                      <Typography variant="body2" fontWeight={600}>{f.teams.away.name}</Typography>
-                    </Box>
-                  </Box>
-                ))
+                displayFixtures.map((f) => <FixtureRow key={f.fixture.id} f={f} />)
               )}
             </CardContent>
           </Card>
@@ -171,6 +201,7 @@ export default function Dashboard() {
               {[
                 { label: "Build Your Team", path: "/team" },
                 { label: "Browse Players", path: "/players" },
+                { label: "All Fixtures", path: "/fixtures" },
                 { label: "Join a League", path: "/groups" },
               ].map((action) => (
                 <Box

@@ -56,6 +56,24 @@ async function fetchFixtures(leagueId, season = CURRENT_SEASON) {
   return data.response || [];
 }
 
+async function fetchRecentFixtures(leagueId, count = 10) {
+  const data = await cachedApiCall("/fixtures", {
+    league: leagueId,
+    season: CURRENT_SEASON,
+    last: count,
+  });
+  return data.response || [];
+}
+
+async function fetchUpcomingFixtures(leagueId, count = 10) {
+  const data = await cachedApiCall("/fixtures", {
+    league: leagueId,
+    season: CURRENT_SEASON,
+    next: count,
+  });
+  return data.response || [];
+}
+
 async function fetchPlayers(leagueId, season = CURRENT_SEASON, page = 1) {
   const data = await cachedApiCall("/players", {
     league: leagueId,
@@ -123,6 +141,8 @@ module.exports = {
   cachedApiCall,
   fetchLeagues,
   fetchFixtures,
+  fetchRecentFixtures,
+  fetchUpcomingFixtures,
   fetchPlayers,
   fetchStandings,
   fetchTopScorers,

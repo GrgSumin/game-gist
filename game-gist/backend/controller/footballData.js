@@ -1,9 +1,12 @@
 const {
   fetchLeagues,
   fetchFixtures,
+  fetchRecentFixtures,
+  fetchUpcomingFixtures,
   fetchStandings,
   fetchTopScorers,
   fetchTopAssists,
+  LEAGUES,
   CURRENT_SEASON,
 } = require("../services/apiFootball");
 const FootballPlayer = require("../model/FootballPlayer");
@@ -32,6 +35,53 @@ exports.getFixtures = async (req, res) => {
     res.json({ fixtures });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch fixtures" });
+  }
+};
+
+// Dashboard fixtures - recent + upcoming from ALL leagues
+exports.getDashboardFixtures = async (req, res) => {
+  try {
+    const { last = 5, next = 5 } = req.query;
+    const leagueIds = Object.values(LEAGUES);
+
+    const promises = leagueIds.flatMap((id) => [
+      fetchRecentFixtures(id, Number(last)),
+      fetchUpcomingFixtures(id, Number(next)),
+    ]);
+
+    const results = await Promise.all(promises);
+    const recent = [];
+    const upcoming = [];
+
+    for (let i = 0; i < results.length; i++) {
+      if (i % 2 === 0) recent.push(...results[i]);
+      else upcoming.push(...results[i]);
+    }
+
+    recent.sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date));
+    upcoming.sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+
+    res.json({ recent, upcoming });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch dashboard fixtures" });
+  }
+};
+
+// Browse fixtures for a single league
+exports.getLeagueFixtures = async (req, res) => {
+  try {
+    const { league = 39, last = 10, next = 10 } = req.query;
+    const [recent, upcoming] = await Promise.all([
+      fetchRecentFixtures(Number(league), Number(last)),
+      fetchUpcomingFixtures(Number(league), Number(next)),
+    ]);
+
+    recent.sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date));
+    upcoming.sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+
+    res.json({ recent, upcoming });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch league fixtures" });
   }
 };
 

@@ -18,6 +18,12 @@ export const getLeagues = () =>
 export const getFixtures = (league = 39, season = 2024) =>
   api.get<{ fixtures: Fixture[] }>(`/api/football/fixtures?league=${league}&season=${season}`);
 
+export const getDashboardFixtures = (last = 5, next = 5) =>
+  api.get<{ recent: Fixture[]; upcoming: Fixture[] }>(`/api/football/fixtures/dashboard?last=${last}&next=${next}`);
+
+export const getFixturesByLeague = (league: number, last = 10, next = 10) =>
+  api.get<{ recent: Fixture[]; upcoming: Fixture[] }>(`/api/football/fixtures/browse?league=${league}&last=${last}&next=${next}`);
+
 export const getStandings = (league = 39, season = 2024) =>
   api.get<{ standings: StandingRow[][] }>(`/api/football/standings?league=${league}&season=${season}`);
 

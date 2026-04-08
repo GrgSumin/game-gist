@@ -10,6 +10,8 @@ const {
   getGameweeks,
   getSyncLogs,
   getPlayerGameweekHistory,
+  getDashboardFixtures,
+  getLeagueFixtures,
   getPlayers,
   getPlayerById,
 } = require("../controller/footballData");
@@ -18,6 +20,8 @@ const { auth, adminOnly } = require("../middleware/auth");
 const router = express.Router();
 
 router.get("/leagues", getLeagues);
+router.get("/fixtures/dashboard", getDashboardFixtures);
+router.get("/fixtures/browse", getLeagueFixtures);
 router.get("/fixtures", getFixtures);
 router.get("/standings", getStandings);
 router.get("/top-scorers", getTopScorers);

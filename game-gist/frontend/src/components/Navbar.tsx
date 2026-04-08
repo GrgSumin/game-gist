@@ -10,6 +10,7 @@ import useAuth from "../hooks/useAuth";
 
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/" },
+  { label: "Fixtures", path: "/fixtures" },
   { label: "My Team", path: "/team" },
   { label: "Players", path: "/players" },
   { label: "Standings", path: "/standings" },
