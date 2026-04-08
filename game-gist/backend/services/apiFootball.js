@@ -9,10 +9,7 @@ const LEAGUES = {
   BUNDESLIGA: 78,
 };
 
-// Auto-detect season: football seasons span two calendar years (e.g. 2024-25)
-// API-Football uses the start year. If we're past July, use current year; else last year.
-const now = new Date();
-const CURRENT_SEASON = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+const CURRENT_SEASON = 2024;
 
 async function cachedApiCall(endpoint, params = {}) {
   const cacheKey = `${endpoint}?${new URLSearchParams(params).toString()}`;
