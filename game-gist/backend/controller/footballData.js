@@ -1,8 +1,8 @@
 const {
   fetchLeagues,
   fetchFixtures,
-  fetchRecentFixtures,
-  fetchUpcomingFixtures,
+  fetchLeagueRecentAndUpcoming,
+  fetchTodayFixtures,
   fetchStandings,
   fetchTopScorers,
   fetchTopAssists,
@@ -38,30 +38,41 @@ exports.getFixtures = async (req, res) => {
   }
 };
 
-// Dashboard fixtures - recent + upcoming from ALL leagues
+// Dashboard fixtures - recent + upcoming from ALL leagues + today's matches
 exports.getDashboardFixtures = async (req, res) => {
   try {
-    const { last = 5, next = 5 } = req.query;
     const leagueIds = Object.values(LEAGUES);
 
-    const promises = leagueIds.flatMap((id) => [
-      fetchRecentFixtures(id, Number(last)),
-      fetchUpcomingFixtures(id, Number(next)),
+    // Fetch all 3 leagues in parallel + today's cross-league fixtures
+    const [todayAll, ...leagueResults] = await Promise.all([
+      fetchTodayFixtures(),
+      ...leagueIds.map((id) => fetchLeagueRecentAndUpcoming(id, 5, 5)),
     ]);
 
-    const results = await Promise.all(promises);
     const recent = [];
     const upcoming = [];
+    const live = [];
 
-    for (let i = 0; i < results.length; i++) {
-      if (i % 2 === 0) recent.push(...results[i]);
-      else upcoming.push(...results[i]);
+    for (const result of leagueResults) {
+      recent.push(...result.recent);
+      upcoming.push(...result.upcoming);
+      live.push(...result.live);
+    }
+
+    // Add today's fixtures that aren't already in the lists
+    const existingIds = new Set([...recent, ...upcoming, ...live].map((f) => f.fixture.id));
+    for (const f of todayAll) {
+      if (!existingIds.has(f.fixture.id)) {
+        if (f.fixture.status.short === "NS") upcoming.push(f);
+        else if (f.fixture.status.short === "FT") recent.push(f);
+        else live.push(f);
+      }
     }
 
     recent.sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date));
     upcoming.sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
 
-    res.json({ recent, upcoming });
+    res.json({ recent: recent.slice(0, 10), upcoming: upcoming.slice(0, 10), live });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch dashboard fixtures" });
   }
@@ -70,16 +81,14 @@ exports.getDashboardFixtures = async (req, res) => {
 // Browse fixtures for a single league
 exports.getLeagueFixtures = async (req, res) => {
   try {
-    const { league = 39, last = 10, next = 10 } = req.query;
-    const [recent, upcoming] = await Promise.all([
-      fetchRecentFixtures(Number(league), Number(last)),
-      fetchUpcomingFixtures(Number(league), Number(next)),
-    ]);
+    const { league = 39 } = req.query;
+    const result = await fetchLeagueRecentAndUpcoming(Number(league), 15, 15);
 
-    recent.sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date));
-    upcoming.sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date));
-
-    res.json({ recent, upcoming });
+    res.json({
+      recent: result.recent,
+      upcoming: result.upcoming,
+      live: result.live,
+    });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch league fixtures" });
   }

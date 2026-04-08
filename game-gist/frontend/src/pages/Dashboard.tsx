@@ -20,9 +20,9 @@ export default function Dashboard() {
 
   useEffect(() => {
     Promise.allSettled([
-      getDashboardFixtures(5, 5).then((r) => {
+      getDashboardFixtures().then((r) => {
         setRecent(r.data.recent);
-        setUpcoming(r.data.upcoming);
+        setUpcoming([...r.data.live, ...r.data.upcoming]);
       }),
       getStandings(39).then((r) => {
         const rows = r.data.standings;

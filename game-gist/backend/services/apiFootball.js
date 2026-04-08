@@ -9,7 +9,10 @@ const LEAGUES = {
   BUNDESLIGA: 78,
 };
 
-const CURRENT_SEASON = 2024;
+// Auto-detect season: football seasons span two calendar years (e.g. 2024-25)
+// API-Football uses the start year. If we're past July, use current year; else last year.
+const now = new Date();
+const CURRENT_SEASON = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
 
 async function cachedApiCall(endpoint, params = {}) {
   const cacheKey = `${endpoint}?${new URLSearchParams(params).toString()}`;
@@ -56,22 +59,44 @@ async function fetchFixtures(leagueId, season = CURRENT_SEASON) {
   return data.response || [];
 }
 
-async function fetchRecentFixtures(leagueId, count = 10) {
-  const data = await cachedApiCall("/fixtures", {
-    league: leagueId,
-    season: CURRENT_SEASON,
-    last: count,
-  });
+// Fetch fixtures for a specific date (works on free tier)
+function formatDate(d) {
+  return d.toISOString().split("T")[0];
+}
+
+async function fetchFixturesByDate(date) {
+  const data = await cachedApiCall("/fixtures", { date: formatDate(date) });
   return data.response || [];
 }
 
-async function fetchUpcomingFixtures(leagueId, count = 10) {
-  const data = await cachedApiCall("/fixtures", {
-    league: leagueId,
-    season: CURRENT_SEASON,
-    next: count,
-  });
-  return data.response || [];
+// Fetch recent + upcoming fixtures for a league using the full season data
+// Then filter to get the most recent finished and next upcoming
+async function fetchLeagueRecentAndUpcoming(leagueId, recentCount = 10, upcomingCount = 10) {
+  const allFixtures = await fetchFixtures(leagueId, CURRENT_SEASON);
+  const today = new Date();
+
+  const finished = allFixtures
+    .filter((f) => f.fixture.status.short === "FT")
+    .sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date))
+    .slice(0, recentCount);
+
+  const upcoming = allFixtures
+    .filter((f) => ["NS", "TBD"].includes(f.fixture.status.short))
+    .sort((a, b) => new Date(a.fixture.date) - new Date(b.fixture.date))
+    .slice(0, upcomingCount);
+
+  const live = allFixtures.filter((f) =>
+    ["LIVE", "1H", "2H", "HT", "ET", "P"].includes(f.fixture.status.short)
+  );
+
+  return { recent: finished, upcoming, live };
+}
+
+// Fetch today's fixtures across all leagues (uses date param - free tier friendly)
+async function fetchTodayFixtures() {
+  const allToday = await fetchFixturesByDate(new Date());
+  const leagueIds = Object.values(LEAGUES);
+  return allToday.filter((f) => leagueIds.includes(f.league.id));
 }
 
 async function fetchPlayers(leagueId, season = CURRENT_SEASON, page = 1) {
@@ -141,8 +166,9 @@ module.exports = {
   cachedApiCall,
   fetchLeagues,
   fetchFixtures,
-  fetchRecentFixtures,
-  fetchUpcomingFixtures,
+  fetchFixturesByDate,
+  fetchLeagueRecentAndUpcoming,
+  fetchTodayFixtures,
   fetchPlayers,
   fetchStandings,
   fetchTopScorers,

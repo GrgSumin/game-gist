@@ -19,10 +19,10 @@ export default function FixturesPage() {
 
   useEffect(() => {
     setLoading(true);
-    getFixturesByLeague(league, 15, 15)
+    getFixturesByLeague(league)
       .then((r) => {
         setRecent(r.data.recent);
-        setUpcoming(r.data.upcoming);
+        setUpcoming([...r.data.live, ...r.data.upcoming]);
       })
       .catch(() => {
         setRecent([]);
