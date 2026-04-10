@@ -3,6 +3,7 @@ import { useRecoilState, useRecoilValue } from "recoil";
 import {
   Box, Typography, Card, CardContent, Grid, Button, TextField,
   Chip, Dialog, DialogTitle, DialogContent, Snackbar,
+  FormControl, InputLabel, Select, MenuItem,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import { myTeamState, teamByPosition, teamCount, remainingBudget, formationState, teamNameState, type TeamPlayer } from "../atoms/team";
@@ -26,25 +27,45 @@ export default function TeamSelection() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [posFilter, setPosFilter] = useState<Position | null>(null);
   const [search, setSearch] = useState("");
+  const [clubFilter, setClubFilter] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogSearch, setDialogSearch] = useState("");
+  const [dialogClubFilter, setDialogClubFilter] = useState("");
   const [saving, setSaving] = useState(false);
   const [snack, setSnack] = useState("");
+  const [replacingPlayerId, setReplacingPlayerId] = useState<string | null>(null);
 
   const loadPlayers = useCallback(async () => {
     try {
-      const params: { limit: number; position?: string; search?: string } = { limit: 0 };
-      if (posFilter) params.position = posFilter;
-      if (search) params.search = search;
-      const { data } = await getPlayers(params);
+      const { data } = await getPlayers({ limit: 0 });
       setPlayers(data.players);
     } catch {
       setPlayers([]);
     }
-  }, [posFilter, search]);
+  }, []);
 
   useEffect(() => {
     loadPlayers();
   }, [loadPlayers]);
+
+  // Unique sorted club list, computed once from all loaded players
+  const allClubs = [...new Set(players.map((p) => p.club))].sort();
+
+  // Sidebar: filter by search + position + club
+  const sidebarPlayers = players.filter((p) => {
+    if (posFilter && p.position !== posFilter) return false;
+    if (clubFilter && p.club !== clubFilter) return false;
+    if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  // Dialog: filter by clicked position (posFilter) + its own search + club filter
+  const dialogPlayers = players.filter((p) => {
+    if (posFilter && p.position !== posFilter) return false;
+    if (dialogClubFilter && p.club !== dialogClubFilter) return false;
+    if (dialogSearch && !p.name.toLowerCase().includes(dialogSearch.toLowerCase())) return false;
+    return true;
+  });
 
   // Load saved team on mount
   useEffect(() => {
@@ -70,7 +91,7 @@ export default function TeamSelection() {
   }, [isAuthenticated, setTeam, setTeamName, setFormation]);
 
   const addPlayer = (player: Player) => {
-    if (count >= 11) return setSnack("Team is full (11 players)");
+    if (count >= 11) return setSnack("Team full — click a player on the pitch to replace");
     if (team.some((p) => p._id === player._id)) return setSnack("Player already in team");
     if (budget < player.price) return setSnack("Not enough budget");
 
@@ -91,11 +112,33 @@ export default function TeamSelection() {
     setTeam(team.filter((p) => p._id !== id));
   };
 
+  const replacePlayer = (oldId: string, newPlayer: Player) => {
+    const old = team.find((p) => p._id === oldId);
+    if (!old) return addPlayer(newPlayer);
+
+    if (team.some((p) => p._id === newPlayer._id)) return setSnack("Player already in team");
+
+    const newBudget = budget + old.price - newPlayer.price;
+    if (newBudget < 0) return setSnack("Not enough budget for swap");
+
+    const clubCount = team.filter((p) => p._id !== oldId && p.club === newPlayer.club).length;
+    if (clubCount >= 3) return setSnack(`Max 3 players per club (${newPlayer.club})`);
+
+    const replacement: TeamPlayer = {
+      ...newPlayer,
+      isCaptain: old.isCaptain,
+      isViceCaptain: old.isViceCaptain,
+    };
+    setTeam(team.map((p) => (p._id === oldId ? replacement : p)));
+  };
+
   const toggleCaptain = (id: string) => {
     setTeam(team.map((p) => ({ ...p, isCaptain: p._id === id })));
   };
 
-  const handleSlotClick = (position: Position) => {
+  const handleSlotClick = (position: Position, index: number) => {
+    const existing = grouped[position][index];
+    setReplacingPlayerId(existing ? existing._id : null);
     setPosFilter(position);
     setDialogOpen(true);
   };
@@ -205,7 +248,7 @@ export default function TeamSelection() {
                 onChange={(e) => setSearch(e.target.value)}
                 sx={{ mb: 1.5 }}
               />
-              <Box sx={{ display: "flex", gap: 0.5, mb: 2 }}>
+              <Box sx={{ display: "flex", gap: 0.5, mb: 1.5, flexWrap: "wrap" }}>
                 {(["ALL", "GK", "DEF", "MID", "FWD"] as const).map((pos) => (
                   <Chip
                     key={pos}
@@ -217,13 +260,30 @@ export default function TeamSelection() {
                   />
                 ))}
               </Box>
+              <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                <InputLabel>Club</InputLabel>
+                <Select
+                  value={clubFilter}
+                  label="Club"
+                  onChange={(e) => setClubFilter(e.target.value)}
+                >
+                  <MenuItem value="">All Clubs</MenuItem>
+                  {allClubs.map((c) => (
+                    <MenuItem key={c} value={c}>{c}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
               <Box sx={{ maxHeight: 500, overflow: "auto" }}>
                 {players.length === 0 ? (
                   <Typography variant="body2" color="text.secondary" textAlign="center" py={3}>
                     No players found. Sync players from the admin panel.
                   </Typography>
+                ) : sidebarPlayers.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary" textAlign="center" py={3}>
+                    No players match your filters.
+                  </Typography>
                 ) : (
-                  players.map((p) => (
+                  sidebarPlayers.map((p) => (
                     <PlayerCard
                       key={p._id}
                       player={p}
@@ -240,21 +300,72 @@ export default function TeamSelection() {
       </Grid>
 
       {/* Position filter dialog from pitch click */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth
+      <Dialog
+        open={dialogOpen}
+        onClose={() => {
+          setDialogOpen(false);
+          setReplacingPlayerId(null);
+          setDialogSearch("");
+          setDialogClubFilter("");
+        }}
+        maxWidth="sm"
+        fullWidth
         PaperProps={{ sx: { bgcolor: "background.paper" } }}
       >
-        <DialogTitle>Select {posFilter} Player</DialogTitle>
+        <DialogTitle>
+          {replacingPlayerId
+            ? `Replace ${team.find((p) => p._id === replacingPlayerId)?.name ?? "player"}`
+            : `Select ${posFilter} Player`}
+        </DialogTitle>
         <DialogContent>
+          <Box sx={{ display: "flex", gap: 1.5, mb: 2, mt: 1, flexWrap: "wrap" }}>
+            <TextField
+              size="small"
+              placeholder="Search players..."
+              value={dialogSearch}
+              onChange={(e) => setDialogSearch(e.target.value)}
+              sx={{ flex: 1, minWidth: 180 }}
+            />
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel>Club</InputLabel>
+              <Select
+                value={dialogClubFilter}
+                label="Club"
+                onChange={(e) => setDialogClubFilter(e.target.value)}
+              >
+                <MenuItem value="">All Clubs</MenuItem>
+                {allClubs.map((c) => (
+                  <MenuItem key={c} value={c}>{c}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
           <Box sx={{ maxHeight: 400, overflow: "auto" }}>
-            {players.filter((p) => !posFilter || p.position === posFilter).map((p) => (
-              <PlayerCard
-                key={p._id}
-                player={p}
-                compact
-                selected={team.some((t) => t._id === p._id)}
-                onClick={() => { addPlayer(p); setDialogOpen(false); }}
-              />
-            ))}
+            {dialogPlayers.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" textAlign="center" py={3}>
+                No players match your filters.
+              </Typography>
+            ) : (
+              dialogPlayers.map((p) => (
+                <PlayerCard
+                  key={p._id}
+                  player={p}
+                  compact
+                  selected={team.some((t) => t._id === p._id)}
+                  onClick={() => {
+                    if (replacingPlayerId) {
+                      replacePlayer(replacingPlayerId, p);
+                    } else {
+                      addPlayer(p);
+                    }
+                    setDialogOpen(false);
+                    setReplacingPlayerId(null);
+                    setDialogSearch("");
+                    setDialogClubFilter("");
+                  }}
+                />
+              ))
+            )}
           </Box>
         </DialogContent>
       </Dialog>
